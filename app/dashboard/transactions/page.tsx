@@ -709,6 +709,17 @@ export default function TransactionsPage() {
       }));
     }
 
+    // Special handling for transaction type changes
+    if (name === "type") {
+      // When transaction type changes, update newCategory type to match
+      setNewCategory(prev => ({
+        ...prev,
+        type: value as "income" | "expense" | "both"
+      }));
+      
+      console.log(`Transaction type changed to: ${value}, updating newCategory type`);
+    }
+
     // Clear any custom category error when user changes selection
     if (name === "category_id" && customCategoryError) {
       setCustomCategoryError(false);
@@ -1656,6 +1667,19 @@ export default function TransactionsPage() {
         return;
       }
       
+      // Validate the category type
+      if (!['income', 'expense', 'both'].includes(newCategory.type)) {
+        console.error("Invalid category type:", newCategory.type);
+        toast.error("Invalid category type. Please select income, expense, or both.");
+        return;
+      }
+      
+      console.log("Creating new category:", {
+        name: newCategory.name.trim(),
+        type: newCategory.type,
+        transaction_type: formData.type
+      });
+      
       // Create the new category
       const { data, error } = await supabase
         .from("categories")
@@ -1669,7 +1693,7 @@ export default function TransactionsPage() {
         
       if (error) {
         console.error("Error creating category:", error);
-        toast.error("Failed to create custom category");
+        toast.error(`Failed to create custom category: ${error.message}`);
         return;
       }
       
@@ -1680,6 +1704,7 @@ export default function TransactionsPage() {
       }
       
       const newCategoryData = data[0];
+      console.log("Category created successfully:", newCategoryData);
       toast.success(`Category "${newCategoryData.name}" created successfully`);
       
       // Add the new category to the categories array so it appears in the dropdown immediately
@@ -1689,17 +1714,20 @@ export default function TransactionsPage() {
       setFormData(prevForm => ({ ...prevForm, category_id: newCategoryData.id }));
       setCustomCategoryError(false);
       
-      // Reset new category form
+      // Reset new category form but keep the type aligned with current transaction type
       setNewCategory({
         name: "",
         type: formData.type === "income" ? "income" : "expense"
       });
       
+      // Reset the custom category view
+      setShowCustomCategoryForm(false);
+      
       // Refresh categories
       await fetchCategories();
     } catch (error) {
       console.error("Error adding custom category:", error);
-      toast.error("An error occurred");
+      toast.error("An error occurred while creating the category");
     } finally {
       setIsSavingCategory(false);
     }
@@ -2258,9 +2286,24 @@ export default function TransactionsPage() {
                           className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm high-contrast-dropdown"
                           aria-label="Category type"
                         >
-                          <option value="expense">Expense</option>
-                          <option value="income">Income</option>
-                          <option value="both">Both</option>
+                          {/* Show the appropriate options based on transaction type */}
+                          {formData.type === 'income' ? (
+                            <>
+                              <option value="income">Income</option>
+                              <option value="both">Both</option>
+                            </>
+                          ) : formData.type === 'expense' ? (
+                            <>
+                              <option value="expense">Expense</option>
+                              <option value="both">Both</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="expense">Expense</option>
+                              <option value="income">Income</option>
+                              <option value="both">Both</option>
+                            </>
+                          )}
                         </select>
                         <Button 
                           type="button" 
