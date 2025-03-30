@@ -486,16 +486,39 @@ export default function TransactionsPage() {
         }
       }
       
+      // Log the fetch attempt
+      console.log("Fetching transactions for user:", user.id);
+      
       // Fetch initial transactions with pagination
-      const { data, error }: ApiResponse<(Transaction & { categories: Category | null })[]> = await supabase
+      // Make sure we're not filtering by type unless explicitly requested
+      let query = supabase
         .from('transactions')
         .select('*, categories(*)')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id);
+      
+      // Only filter by type if a specific filter is set
+      if (filterType !== 'all') {
+        query = query.eq('type', filterType);
+        console.log("Filtering transactions by type:", filterType);
+      } else {
+        console.log("Fetching all transaction types");
+      }
+      
+      const { data, error }: ApiResponse<(Transaction & { categories: Category | null })[]> = await query
         .order('date', { ascending: false })
         .limit(itemsPerPage);
 
-      if (error) throw error;
-      if (!data) throw new Error("No data received");
+      if (error) {
+        console.error("Error fetching transactions:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.log("No transaction data received");
+        throw new Error("No data received");
+      }
+
+      console.log(`Fetched ${data.length} transactions:`, data.map(t => ({ id: t.id, type: t.type, amount: t.amount })));
 
       const transactions = data.map(transaction => ({
         ...transaction,
@@ -768,7 +791,11 @@ export default function TransactionsPage() {
 
     try {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData.user) {
+        toast.error("You must be logged in to add transactions");
+        setFormLoading(false);
+        return;
+      }
 
       // Validate form data
       if (!formData.category_id || !formData.amount || !formData.date) {
@@ -778,6 +805,15 @@ export default function TransactionsPage() {
       }
 
       const parsedAmount = parseFloat(formData.amount);
+      
+      // Log the transaction data before submission for debugging
+      console.log("Submitting transaction:", {
+        type: formData.type,
+        category_id: formData.category_id,
+        amount: parsedAmount,
+        description: formData.description,
+        date: formData.date
+      });
       
       // Create a new transaction object
       const newTransaction = {
@@ -806,7 +842,12 @@ export default function TransactionsPage() {
             })
             .eq("id", editingRecurring.id);
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error updating recurring transaction:", error);
+            toast.error(`Failed to update recurring transaction: ${error.message}`);
+            setFormLoading(false);
+            return;
+          }
           toast.success("Recurring transaction updated!");
           setEditingRecurring(null);
         } else {
@@ -827,8 +868,9 @@ export default function TransactionsPage() {
             .select();
             
           if (recurringError) {
-            toast.error("Failed to create recurring transaction");
-            console.error(recurringError);
+            console.error("Error creating recurring transaction:", recurringError);
+            toast.error(`Failed to create recurring transaction: ${recurringError.message}`);
+            setFormLoading(false);
             return;
           }
           
@@ -846,8 +888,9 @@ export default function TransactionsPage() {
             });
             
           if (transactionError) {
-            toast.error("Failed to create initial transaction");
-            console.error(transactionError);
+            console.error("Error creating initial transaction:", transactionError);
+            toast.error(`Failed to create initial transaction: ${transactionError.message}`);
+            setFormLoading(false);
             return;
           }
           
@@ -868,23 +911,37 @@ export default function TransactionsPage() {
             })
             .eq("id", editId);
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error updating transaction:", error);
+            toast.error(`Failed to update transaction: ${error.message}`);
+            setFormLoading(false);
+            return;
+          }
           toast.success("Transaction updated!");
         } else {
           // Insert new transaction
-          const { error } = await supabase
+          console.log("Inserting new transaction of type:", formData.type);
+          const { data, error } = await supabase
             .from("transactions")
-            .insert({
+            .insert([{
               user_id: userData.user.id,
               type: formData.type,
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
               date: formData.date
-            });
+            }])
+            .select();
 
-          if (error) throw error;
-          toast.success("Transaction added!");
+          if (error) {
+            console.error("Error inserting transaction:", error);
+            toast.error(`Failed to add transaction: ${error.message}`);
+            setFormLoading(false);
+            return;
+          }
+          
+          console.log("Transaction inserted successfully:", data);
+          toast.success(`${formData.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
         }
       }
 
@@ -898,9 +955,9 @@ export default function TransactionsPage() {
         setSortField(sortField);
         setSortDirection(sortDirection);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("An error occurred");
+    } catch (error: any) {
+      console.error("Error in transaction submission:", error);
+      toast.error(`An error occurred: ${error?.message || "Unknown error"}`);
     } finally {
       setFormLoading(false);
       // Clear draft after submission
