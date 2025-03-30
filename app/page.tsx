@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, useInView, useAnimation, AnimatePresence } from "framer-motion";
 import { 
   PieChart, 
   LineChart, 
@@ -32,8 +32,14 @@ import {
   Lightbulb,
   Heart,
   Clock,
-  Gift
+  Gift,
+  BarChart2,
+  ChevronDown,
+  FileText,
+  Settings,
+  UserPlus
 } from "lucide-react";
+import { HeroBubbles, FeatureBubbles, TestimonialBubbles, CTABubbles } from "./page-animations";
 
 // Parallax wrapper component
 const ParallaxWrapper: React.FC<{ children: React.ReactNode; speed?: number }> = ({ children, speed = 0.05 }) => {
@@ -173,7 +179,7 @@ export default function Home() {
             
             {/* Desktop navigation */}
             <div className="hidden md:flex space-x-8">
-              {["Features", "Pricing", "Testimonials", "Contact"].map((item) => (
+              {["Features", "Pricing", "Testimonials", "About", "Contact"].map((item) => (
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase()}`}
@@ -338,7 +344,7 @@ export default function Home() {
                 </motion.button>
               </div>
               <div className="flex flex-col p-4 space-y-4">
-                {["Features", "Pricing", "Testimonials", "Contact"].map((item, i) => (
+                {["Features", "Pricing", "Testimonials", "About", "Contact"].map((item, i) => (
                   <motion.a
                     key={item}
                     href={`#${item.toLowerCase()}`}
@@ -384,33 +390,11 @@ export default function Home() {
       <section className="relative overflow-hidden border-b bg-gradient-hero">
         <div className="absolute inset-0">
           <div className="absolute inset-0 opacity-30">
-            {[...Array(5)].map((_, i) => (
-              <motion.div 
-                key={i}
-                className="absolute rounded-full bg-primary/10"
-                style={{
-                  width: `${Math.random() * 200 + 50}px`,
-                  height: `${Math.random() * 200 + 50}px`,
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, Math.random() * 30 - 15],
-                  x: [0, Math.random() * 30 - 15],
-                  scale: [1, 1 + Math.random() * 0.2],
-                  opacity: [0.3, 0.5, 0.3]
-                }}
-                transition={{
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  duration: Math.random() * 10 + 10,
-                  ease: "easeInOut"
-                }}
-              />
-            ))}
+            {/* Replace random bubbles with client component */}
+            <HeroBubbles />
           </div>
         </div>
-
+        
         <div className="container mx-auto relative">
           <div className="flex flex-col lg:flex-row items-center py-12 md:py-20 lg:py-32 gap-12">
             <motion.div 
@@ -778,34 +762,9 @@ export default function Home() {
           }}
         />
         
-        {/* Animated floating elements */}
+        {/* Replace random decorative elements with client component */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-primary/5"
-              style={{
-                width: `${Math.random() * 300 + 50}px`,
-                height: `${Math.random() * 300 + 50}px`,
-                borderRadius: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                filter: `blur(${Math.random() * 50 + 10}px)`,
-              }}
-              animate={{
-                y: [0, Math.random() * 50 - 25],
-                x: [0, Math.random() * 50 - 25],
-                scale: [1, 1 + Math.random() * 0.3],
-                opacity: [0.1, 0.3, 0.1],
-              }}
-              transition={{
-                repeat: Infinity,
-                repeatType: "reverse",
-                duration: Math.random() * 10 + 15,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
+          <FeatureBubbles />
         </div>
         
         <div className="container mx-auto px-4 relative">
@@ -1265,6 +1224,11 @@ export default function Home() {
           }}
         />
         
+        {/* Add client component for testimonial bubbles */}
+        <div className="absolute inset-0" style={{ opacity: 0.6 }}>
+          <TestimonialBubbles />
+        </div>
+        
         <div className="container mx-auto px-4 relative">
           <motion.div 
             className="max-w-xl mx-auto text-center mb-16"
@@ -1620,33 +1584,8 @@ export default function Home() {
           <div className="absolute top-0 left-0 right-0 h-px bg-white/30"></div>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-white/30"></div>
           
-          {/* Animated floating elements */}
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute bg-white/5 rounded-full"
-              style={{
-                width: `${Math.random() * 300 + 100}px`,
-                height: `${Math.random() * 300 + 100}px`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                transform: 'translate(-50%, -50%)',
-                filter: `blur(${Math.random() * 30 + 10}px)`,
-              }}
-              animate={{
-                y: [0, Math.random() * 50 - 25],
-                x: [0, Math.random() * 50 - 25],
-                scale: [1, Math.random() * 0.2 + 1.1, 1],
-                opacity: [0.2, 0.4, 0.2]
-              }}
-              transition={{
-                repeat: Infinity,
-                repeatType: 'reverse',
-                duration: Math.random() * 8 + 10,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
+          {/* Replace random elements with fixed CTABubbles */}
+          <CTABubbles />
         </motion.div>
         
         <div className="container mx-auto px-4 relative z-10">
@@ -1896,142 +1835,166 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-card py-12 md:py-16 relative overflow-hidden">
-        <motion.div
-          className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-primary/5"
-          animate={{ 
-            scale: [1, 1.1, 1],
-          }}
-          transition={{ 
-            repeat: Infinity,
-            duration: 10,
-            ease: "easeInOut"
-          }}
-        />
-        
-        <div className="container mx-auto px-4 relative">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex items-center gap-2 font-bold text-xl mb-4">
-                <motion.svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5 text-primary"
-                  animate={{ 
-                    rotate: [0, 360],
-                  }}
-                  transition={{ 
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    duration: 10,
-                    ease: "linear"
-                  }}
-                >
-                  <path d="M5 12H19M12 5V19" />
-                  <circle cx="12" cy="12" r="9" />
-                </motion.svg>
-                <span>Budget Tracker</span>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Smart financial tracking for modern living
-              </p>
-              <div className="flex gap-3">
-                {['twitter', 'facebook', 'instagram'].map((social, idx) => (
-                  <motion.a 
-                    key={social} 
-                    href="#" 
-                    className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
-                    whileHover={{ scale: 1.1, backgroundColor: "var(--primary)", color: "white" }}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.3, delay: 0.3 + idx * 0.1 }}
-                  >
-                    <span className="sr-only">{social}</span>
-                    <div className="w-4 h-4"></div>
-                  </motion.a>
-                ))}
-              </div>
-            </motion.div>
-            
-            {[
-              {
-                title: "Product",
-                links: ['Features', 'Pricing', 'Testimonials', 'FAQ']
-              },
-              {
-                title: "Resources",
-                links: ['Blog', 'Help Center', 'Contact', 'Privacy Policy']
-              },
-              {
-                title: "Company",
-                links: ['About', 'Careers', 'Terms of Service', 'Status']
-              }
-            ].map((column, colIdx) => (
+      {/* About Section */}
+      <section id="about" className="py-20 md:py-28 relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet Our Team</h2>
+            <p className="text-lg text-muted-foreground">
+              Passionate developers dedicated to helping you achieve financial freedom
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {developers.map((developer, index) => (
               <motion.div
-                key={column.title}
+                key={developer.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.1 + colIdx * 0.1, duration: 0.5 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-card rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                <h3 className="font-medium mb-3">{column.title}</h3>
-                <ul className="space-y-2 text-sm">
-                  {column.links.map((item, idx) => (
-                    <motion.li 
-                      key={item}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 + colIdx * 0.1 + idx * 0.05, duration: 0.3 }}
-                    >
-                      <motion.a 
-                        href="#" 
-                        className="text-muted-foreground hover:text-primary transition-colors inline-block"
-                        whileHover={{ x: 3 }}
-                        transition={{ duration: 0.2 }}
+                <div className="p-6">
+                  <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden border-2 border-primary">
+                    <Image 
+                      src={developer.avatar} 
+                      alt={developer.name} 
+                      width={96} 
+                      height={96} 
+                      className="object-cover w-full h-full" 
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold text-center mb-2">{developer.name}</h3>
+                  <p className="text-primary text-center mb-3">{developer.role}</p>
+                  <p className="text-muted-foreground text-center mb-4">{developer.bio}</p>
+                  
+                  <div className="flex justify-center space-x-4">
+                    {developer.socials.map((social) => (
+                      <a 
+                        key={social.platform} 
+                        href={social.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors duration-200"
+                        aria-label={`${developer.name}'s ${social.platform}`}
                       >
-                        {item}
-                      </motion.a>
-                    </motion.li>
-                  ))}
-                </ul>
+                        {social.icon}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
-          
-          <motion.div 
-            className="border-t mt-12 pt-6 flex flex-col md:flex-row justify-between items-center gap-4"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Budget Tracker. All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <select 
-                className="text-sm bg-transparent border rounded-md px-2 py-1"
-                aria-label="Select language"
-                title="Language selector"
-              >
-                <option>English</option>
-                <option>Español</option>
-                <option>Français</option>
-              </select>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative bg-gradient-to-b from-background to-card border-t overflow-hidden pt-16 pb-8">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl opacity-70"></div>
+          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-secondary/5 blur-3xl opacity-70"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Footer top section with logo and quick links */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10">
+            {/* Brand column */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative h-10 w-10 bg-primary/10 rounded-xl p-2 flex items-center justify-center">
+                  <Image 
+                    src="/logo.svg" 
+                    alt="Budget Tracker Logo" 
+                    width={24} 
+                    height={24} 
+                    className="h-6 w-6" 
+                  />
+                </div>
+                <span className="font-bold text-xl">Budget Tracker</span>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-5 max-w-xs">
+                Your personal finance companion for smart budgeting, expense tracking, and financial insights in one beautiful app.
+              </p>
+              
+              <div className="flex space-x-3 mb-8">
+                {['twitter', 'facebook', 'instagram', 'github'].map(platform => (
+                  <a 
+                    key={platform}
+                    href={`https://${platform}.com`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
+                    aria-label={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  >
+                    {platform === 'twitter' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+                    )}
+                    {platform === 'facebook' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    )}
+                    {platform === 'instagram' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    )}
+                    {platform === 'github' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    )}
+                  </a>
+                ))}
+              </div>
             </div>
-          </motion.div>
+
+            {/* Navigation columns */}
+            {["Product", "Company", "Resources", "Legal"].map((section, i) => (
+              <div key={section} className="space-y-4">
+                <h3 className="font-semibold text-base">{section}</h3>
+                <ul className="space-y-3">
+                  {(section === "Product" ?
+                    ["Features", "Integrations", "Pricing", "Changelog"] :
+                  section === "Company" ?
+                    ["About Us", "Careers", "Blog", "Press"] :
+                  section === "Resources" ?
+                    ["Help Center", "Contact Us", "Community", "Status"] :
+                    ["Terms of Service", "Privacy Policy", "Cookie Policy", "Compliance"]).map((item) => (
+                    <li key={item}>
+                      <a 
+                        href="#" 
+                        className="text-sm text-muted-foreground hover:text-primary hover:translate-x-1 transition-all inline-block"
+                      >
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          
+          {/* Footer bottom with copyright and links */}
+          <div className="mt-12 pt-6 border-t border-border/30 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <p className="text-xs text-muted-foreground">© 2023 Budget Tracker. All rights reserved.</p>
+              <div className="flex items-center gap-4 md:border-l md:border-border/30 md:pl-4">
+                <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">Privacy</a>
+                <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">Terms</a>
+                <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">Cookies</a>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative h-8 w-8 bg-background rounded-full border border-border/50 shadow-sm flex items-center justify-center overflow-hidden">
+                <ThemeToggle iconOnly />
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </main>
@@ -2109,3 +2072,75 @@ const testimonials = [
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma"
   }
 ]; 
+
+const developers = [
+  {
+    name: "Alex Chen",
+    role: "Lead Developer",
+    bio: "Full-stack developer passionate about creating intuitive financial tools that empower users to achieve their goals.",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+    socials: [
+      {
+        platform: "LinkedIn",
+        url: "https://linkedin.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      },
+      {
+        platform: "GitHub",
+        url: "https://github.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      },
+      {
+        platform: "Twitter",
+        url: "https://twitter.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+      }
+    ]
+  },
+  {
+    name: "Sophia Rodriguez",
+    role: "UI/UX Designer",
+    bio: "Design enthusiast focused on creating beautiful, accessible interfaces that make managing finances a delightful experience.",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia",
+    socials: [
+      {
+        platform: "LinkedIn",
+        url: "https://linkedin.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      },
+      {
+        platform: "Dribbble",
+        url: "https://dribbble.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M19.13 5.09C15.22 9.14 10 10.44 2.25 10.94"/><path d="M21.75 12.84c-6.62-1.41-12.14 1-16.38 6.32"/><path d="M8.56 2.75c4.37 6 6 9.42 8 17.72"/></svg>
+      },
+      {
+        platform: "Instagram",
+        url: "https://instagram.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      }
+    ]
+  },
+  {
+    name: "Marcus Johnson",
+    role: "Backend Developer",
+    bio: "Security and database specialist ensuring your financial data is protected with the latest encryption technologies.",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
+    socials: [
+      {
+        platform: "LinkedIn",
+        url: "https://linkedin.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      },
+      {
+        platform: "GitHub",
+        url: "https://github.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      },
+      {
+        platform: "Stack Overflow",
+        url: "https://stackoverflow.com",
+        icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 16.5h-12v-2h12v2z"/><path d="m19 20h-14v-2h14z"/><path d="m14 12 0.8-3-3-0.7-0.8 3 3 0.7z"/><path d="m12 8.3 1.6-2.7-2.7-1.6-1.6 2.7 2.7 1.6z"/><path d="m8.8 3.8 2.3-2.1-2.1-2.3-2.3 2.1 2.1 2.3z"/></svg>
+      }
+    ]
+  }
+];

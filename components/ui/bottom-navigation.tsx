@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BarChart2, PlusCircle, FileText, User } from "lucide-react";
+import { Home, BarChart2, PlusCircle, FileText, User, Info } from "lucide-react";
 import { memo, useMemo } from "react";
 
 interface NavItem {
@@ -62,6 +62,12 @@ function BottomNavigationComponent() {
       icon: <User size={20} />,
       label: "Profile",
       active: pathname.startsWith("/dashboard/settings"),
+    },
+    {
+      href: "/dashboard/about",
+      icon: <Info size={20} />,
+      label: "About",
+      active: pathname.startsWith("/dashboard/about"),
     },
   ], [pathname]);
 

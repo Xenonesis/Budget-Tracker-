@@ -89,10 +89,12 @@ export default function DashboardLayout({
     
     const getUser = async () => {
       try {
-        setLoading(true);
-        const { data } = await supabase.auth.getUser();
+        // Always refresh the auth state when checking
+        const { data, error } = await supabase.auth.getUser();
         
-        if (!isMounted) return;
+        if (error) {
+          throw error;
+        }
         
         if (!data.user) {
           router.push("/auth/login");
@@ -116,12 +118,31 @@ export default function DashboardLayout({
         }
         
         // Ensure profile exists using the utility function
-        await ensureUserProfile(
-          data.user.id, 
-          data.user.email, 
-          data.user.user_metadata?.name,
-          preferredCurrency
-        );
+        try {
+          const profileCreated = await ensureUserProfile(
+            data.user.id, 
+            data.user.email, 
+            data.user.user_metadata?.name,
+            preferredCurrency
+          );
+          
+          if (!profileCreated) {
+            console.log("Profile creation failed on first attempt, retrying once...");
+            // Wait 1 second before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Retry once
+            await ensureUserProfile(
+              data.user.id, 
+              data.user.email, 
+              data.user.user_metadata?.name,
+              preferredCurrency
+            );
+          }
+        } catch (profileError) {
+          console.error("Error ensuring user profile:", profileError);
+          // Continue anyway - the app can still function without a complete profile
+        }
         
         // Sync user preferences if not already initialized
         if (!initialized || userId !== data.user.id) {
@@ -130,6 +151,10 @@ export default function DashboardLayout({
         }
       } catch (error) {
         console.error("Error getting user:", error);
+        // If we get a 401 error, redirect to login
+        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 401) {
+          router.push("/auth/login");
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -178,10 +203,12 @@ export default function DashboardLayout({
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            fill="currentColor"
-            className="h-6 w-6 text-primary"
+            className="h-6 w-6 text-primary animate-pulse"
           >
-            <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path>
+            <path 
+              d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 3v5.5l4.5 2.7-0.75 1.23L10.5 13V7h1.5z"
+              fill="currentColor"
+            />
           </svg>
           <span className="text-lg">Budget Tracker</span>
         </Link>
@@ -218,10 +245,12 @@ export default function DashboardLayout({
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-6 w-6 text-primary"
+              className="h-6 w-6 text-primary animate-pulse"
             >
-              <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path>
+              <path 
+                d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 3v5.5l4.5 2.7-0.75 1.23L10.5 13V7h1.5z"
+                fill="currentColor"
+              />
             </svg>
             <span className="text-lg">Budget Tracker</span>
           </Link>
@@ -416,6 +445,27 @@ const navItems: NavItem[] = [
       >
         <circle cx="12" cy="12" r="3"></circle>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    ),
+  },
+  {
+    title: "About",
+    href: "/dashboard/about",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
       </svg>
     ),
   },

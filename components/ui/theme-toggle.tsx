@@ -71,49 +71,66 @@ function ThemeToggleComponent({
   const buttonContent = useMemo(() => {
     if (!mounted) {
       return (
-        <>
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-300 to-yellow-500 dark:from-indigo-500 dark:to-purple-600 opacity-0 dark:opacity-0 rounded-full transition-all duration-300"></div>
+          <Sun className="absolute h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-600 dark:text-white" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-indigo-600 dark:text-white" />
           <span className="sr-only">Toggle theme</span>
-        </>
+        </div>
       );
     }
 
     if (theme === "light") {
       return (
-        <>
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all" />
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-300 to-yellow-500 opacity-10 rounded-full"></div>
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all text-amber-600" />
           {!iconOnly && <span className="ml-2">Light</span>}
           <span className="sr-only">Toggle theme</span>
-        </>
+        </div>
       );
     }
     
     if (theme === "dark") {
       return (
-        <>
-          <Moon className="h-4 w-4 rotate-0 scale-100 transition-all" />
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-20 rounded-full"></div>
+          <Moon className="h-4 w-4 rotate-0 scale-100 transition-all text-indigo-300" />
           {!iconOnly && <span className="ml-2">Dark</span>}
           <span className="sr-only">Toggle theme</span>
-        </>
+        </div>
       );
     }
     
     return (
-      <>
-        <Laptop className="h-4 w-4 rotate-0 scale-100 transition-all" />
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-500 opacity-10 rounded-full"></div>
+        <Laptop className="h-4 w-4 rotate-0 scale-100 transition-all text-sky-600 dark:text-sky-400" />
         {!iconOnly && <span className="ml-2">System</span>}
         <span className="sr-only">Toggle theme</span>
-      </>
+      </div>
     );
   }, [theme, iconOnly, mounted]);
 
   if (!mounted) {
     return (
-      <Button variant={variant} size={size} className={cn("w-9", className)}>
-        <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        <span className="sr-only">Toggle theme</span>
+      <Button 
+        variant="ghost" 
+        size={size} 
+        className={cn(
+          "relative w-9 h-9 p-0 overflow-hidden rounded-full",
+          "bg-background/0 hover:bg-background/0",
+          "border border-border/40 hover:border-primary/50 shadow-sm",
+          "transition-all duration-300 ease-in-out",
+          className
+        )}
+      >
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-300 to-yellow-500 dark:from-indigo-500 dark:to-purple-600 opacity-0 dark:opacity-0 rounded-full transition-all duration-300"></div>
+          <Sun className="absolute h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-600 dark:text-white" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-indigo-600 dark:text-white" />
+          <span className="sr-only">Toggle theme</span>
+        </div>
       </Button>
     );
   }
@@ -121,7 +138,18 @@ function ThemeToggleComponent({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} className={cn(iconOnly ? "w-9" : "", className)}>
+        <Button 
+          variant="ghost" 
+          size={size} 
+          className={cn(
+            "relative w-9 h-9 p-0 overflow-hidden rounded-full",
+            "bg-background/0 hover:bg-background/0",
+            "border border-border/40 hover:border-primary/50 shadow-sm",
+            "transition-all duration-300 ease-in-out",
+            iconOnly ? "" : "w-auto px-3",
+            className
+          )}
+        >
           {buttonContent}
         </Button>
       </DropdownMenuTrigger>

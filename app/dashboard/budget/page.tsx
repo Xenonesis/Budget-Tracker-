@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { validateAmount } from "@/lib/validation";
-import { Plus, Pencil, Trash2, AlertTriangle, CheckCircle, X, DollarSign, Calendar, ChevronUp, ChevronDown, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, CheckCircle, X, DollarSign, Calendar, ChevronUp, ChevronDown, BarChart3, Info } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -51,6 +51,18 @@ export default function BudgetPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    action: () => Promise<void>;
+  } | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [existingBudgetToUpdate, setExistingBudgetToUpdate] = useState<Budget | null>(null);
+  const [swipeStart, setSwipeStart] = useState<number | null>(null);
+  const [swipeCategoryId, setSwipeCategoryId] = useState<string | null>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchBudgets();
@@ -73,7 +85,10 @@ export default function BudgetPage() {
       setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
-      toast.error("Failed to load categories");
+      toast.error("Failed to load categories", {
+        description: "Please check your connection and try again",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+      });
     }
   };
 
@@ -165,7 +180,10 @@ export default function BudgetPage() {
       setCategorySpending(spending);
     } catch (error) {
       console.error("Error fetching budgets:", error);
-      toast.error("Failed to load budget data");
+      toast.error("Failed to load budget data", {
+        description: "Please check your connection and try again",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+      });
     } finally {
       setLoading(false);
     }
@@ -239,7 +257,10 @@ export default function BudgetPage() {
           return;
         }
         
-        toast.success("Budget updated successfully");
+        toast.success("Budget updated successfully", {
+          description: "Your budget changes have been saved",
+          icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+        });
       } else {
         // Check if budget for this category already exists
         const existingBudget = budgets.find(
@@ -247,29 +268,54 @@ export default function BudgetPage() {
         );
 
         if (existingBudget) {
-          // Confirm if the user wants to update
-          if (!window.confirm("A budget for this category already exists. Do you want to update it?")) {
-            setFormLoading(false);
-            return;
-          }
+          // Show confirmation modal instead of window.confirm
+          setExistingBudgetToUpdate(existingBudget);
+          setConfirmAction({
+            title: "Update Existing Budget",
+            message: "A budget for this category already exists. Do you want to update it?",
+            action: async () => {
+              try {
+                if (!existingBudgetToUpdate) return;
+                
+                const { error } = await supabase
+                  .from("budgets")
+                  .update({
+                    amount,
+                    period: formData.period as "monthly" | "weekly" | "yearly",
+                  })
+                  .eq("id", existingBudgetToUpdate.id)
+                  .eq("user_id", userData.user.id);
 
-          // Update existing category
-          const { error } = await supabase
-            .from("budgets")
-            .update({
-              amount,
-              period: formData.period as "monthly" | "weekly" | "yearly",
-            })
-            .eq("id", existingBudget.id)
-            .eq("user_id", userData.user.id);
-
-          if (error) {
-            console.error("Error updating existing budget:", error);
-            setFormError(`Failed to update budget: ${error.message}`);
-            return;
-          }
-          
-          toast.success("Existing budget updated successfully");
+                if (error) {
+                  console.error("Error updating existing budget:", error);
+                  setFormError(`Failed to update budget: ${error.message}`);
+                  return;
+                }
+                
+                toast.success("Budget updated successfully", {
+                  description: `Updated budget for ${categories.find(c => c.id === existingBudgetToUpdate.category_id)?.name || 'category'}`,
+                  icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+                });
+                
+                // Refresh budgets and reset form
+                await fetchBudgets();
+                resetForm();
+                setShowForm(false);
+              } catch (error: any) {
+                console.error("Error updating budget:", error);
+                toast.error("Failed to update budget", {
+                  description: error?.message || "An unexpected error occurred",
+                  icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+                });
+              } finally {
+                setFormLoading(false);
+                setShowConfirmModal(false);
+              }
+            }
+          });
+          setShowConfirmModal(true);
+          setFormLoading(false);
+          return;
         } else {
           // Create new budget
           const { error } = await supabase.from("budgets").insert([
@@ -287,7 +333,10 @@ export default function BudgetPage() {
             return;
           }
           
-          toast.success("New budget created successfully");
+          toast.success("Budget created successfully", {
+            description: `New budget for ${categories.find(c => c.id === formData.category_id)?.name || 'category'} has been created`,
+            icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+          });
         }
       }
 
@@ -298,6 +347,10 @@ export default function BudgetPage() {
     } catch (error: any) {
       console.error("Error saving budget:", error);
       setFormError(`${error?.message || "Unknown error"}`);
+      toast.error("Failed to save budget", {
+        description: error?.message || "An unexpected error occurred",
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+      });
     } finally {
       setFormLoading(false);
     }
@@ -316,25 +369,41 @@ export default function BudgetPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this budget?")) return;
+    // Show confirmation modal instead of confirm
+    setDeleteId(id);
+    const budgetToDelete = budgets.find(b => b.id === id);
+    setConfirmAction({
+      title: "Delete Budget",
+      message: `Are you sure you want to delete the budget for ${budgetToDelete?.category_name || 'this category'}?`,
+      action: async () => {
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) return;
 
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+          const { error } = await supabase
+            .from("budgets")
+            .delete()
+            .eq("id", id)
+            .eq("user_id", userData.user.id);
 
-      const { error } = await supabase
-        .from("budgets")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", userData.user.id);
-
-      if (error) throw error;
-      await fetchBudgets();
-      toast.success("Budget deleted successfully");
-    } catch (error) {
-      console.error("Error deleting budget:", error);
-      toast.error("Failed to delete budget");
-    }
+          if (error) throw error;
+          await fetchBudgets();
+          toast.success("Budget deleted successfully", {
+            description: "The budget has been removed from your account",
+            icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+          });
+        } catch (error) {
+          console.error("Error deleting budget:", error);
+          toast.error("Failed to delete budget", {
+            description: "An error occurred while trying to delete the budget",
+            icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+          });
+        } finally {
+          setShowConfirmModal(false);
+        }
+      }
+    });
+    setShowConfirmModal(true);
   };
 
   const toggleCategoryExpansion = (categoryId: string) => {
@@ -377,6 +446,56 @@ export default function BudgetPage() {
     }
   };
 
+  // Add scroll indicator when first budget is added
+  useEffect(() => {
+    if (budgets.length > 0 && !showScrollIndicator) {
+      setShowScrollIndicator(true);
+      setTimeout(() => {
+        setShowScrollIndicator(false);
+      }, 3000);
+    }
+  }, [budgets.length]);
+
+  // Add swipe gesture detection for mobile
+  const handleTouchStart = (e: React.TouchEvent, categoryId: string) => {
+    const touchX = e.touches[0].clientX;
+    setSwipeStart(touchX);
+    setSwipeCategoryId(categoryId);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Prevent default to avoid unwanted scrolling during swipe
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (swipeStart === null || swipeCategoryId === null) return;
+    
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = swipeStart - touchEnd;
+    
+    // If swipe is significant (more than 100px)
+    if (diff > 100) {
+      // Swiped left - delete
+      const budget = budgets.find(b => b.category_id === swipeCategoryId);
+      if (budget) handleDelete(budget.id);
+    } else if (diff < -100) {
+      // Swiped right - edit
+      const budget = budgets.find(b => b.category_id === swipeCategoryId);
+      if (budget) handleEdit(budget);
+    }
+    
+    setSwipeStart(null);
+    setSwipeCategoryId(null);
+  };
+
+  // Scroll to top when form is opened
+  useEffect(() => {
+    if (showForm) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showForm]);
+
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -389,8 +508,8 @@ export default function BudgetPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl relative" ref={scrollRef}>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
         <div className="flex items-center gap-3">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -426,12 +545,14 @@ export default function BudgetPage() {
           </div>
         </div>
         
+        {/* Hide New Budget button on mobile - will show FAB instead */}
         <motion.div
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.3 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          className="hidden md:block"
         >
           <Button 
             onClick={() => {
@@ -459,8 +580,43 @@ export default function BudgetPage() {
         </motion.div>
       </div>
 
+      {/* Show form errors in a more visible way */}
+      <AnimatePresence>
+        {formError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 mb-6 border border-red-200 dark:border-red-800"
+          >
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-500" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                  {formError}
+                </h3>
+              </div>
+              <div className="ml-auto pl-3">
+                <div className="-mx-1.5 -my-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setFormError(null)}
+                    className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <X className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Budget Overview Cards - Improved with better visual hierarchy and responsive design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
         {/* Total Budget Card */}
         <div className="rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
@@ -527,178 +683,129 @@ export default function BudgetPage() {
       {/* Budget form */}
       <AnimatePresence>
         {showForm && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-card border rounded-lg p-4 md:p-6 mb-8 overflow-hidden shadow-md"
           >
-            <div className="bg-card border rounded-lg p-6 mb-8 shadow-sm">
-              <h2 className="text-lg font-medium mb-4">
-                {isEditing ? "Edit Budget" : "Create New Budget"}
-              </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">
+                  {isEditing ? "Edit Budget" : "Add New Budget"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    resetForm();
+                  }}
+                  className="text-muted-foreground hover:text-foreground touch-manipulation"
+                  aria-label="Close form"
+                  title="Close form"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <AnimatePresence>
-                  {formError && (
-                    <motion.div 
-                      className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="category_id" className="block text-sm font-medium mb-1">
+                    Category
+                  </label>
+                  <select
+                    id="category_id"
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border border-input bg-background px-3 py-3 md:py-2 touch-manipulation"
+                    disabled={formLoading}
+                  >
+                    <option value="">Select a category</option>
+                    {categories
+                      .filter(c => c.type !== "income")
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Budget Amount
+                  </label>
+                  <ValidatedInput
+                    id="amount"
+                    name="amount"
+                    type="text"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    prefix="$"
+                    disabled={formLoading}
+                    validationFn={validateAmount}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="period" className="block text-sm font-medium mb-1">
+                    Budget Period
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="period"
+                      name="period"
+                      value={formData.period}
+                      onChange={handleInputChange}
+                      className="w-full rounded-md border border-input bg-background px-3 py-3 md:py-2 appearance-none touch-manipulation"
+                      disabled={formLoading}
                     >
-                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>{formError}</span>
-                    </motion.div>
+                      <option value="monthly">Monthly</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                    <Calendar className="h-4 w-4 text-muted-foreground absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false);
+                    resetForm();
+                  }}
+                  disabled={formLoading}
+                  className="w-full md:w-auto min-h-[44px]"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={formLoading}
+                  className="w-full md:w-auto min-h-[44px]"
+                >
+                  {formLoading ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                      {isEditing ? "Updating..." : "Saving..."}
+                    </>
+                  ) : (
+                    <>{isEditing ? "Update Budget" : "Save Budget"}</>
                   )}
-                </AnimatePresence>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="category_id" className="block text-sm font-medium">
-                      Category
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="category_id"
-                        name="category_id"
-                        value={formData.category_id}
-                        onChange={handleInputChange}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        required
-                      >
-                        <option value="">Select a category</option>
-                        {categories
-                          .filter(cat => cat.type === "expense" || cat.type === "both")
-                          .map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                      </select>
-                      <motion.div 
-                        className="absolute bottom-0 left-0 h-[2px] bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: formData.category_id ? "100%" : "0%" }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="amount" className="block text-sm font-medium">
-                      Amount
-                    </label>
-                    <div className="relative">
-                      <div className="relative rounded-md shadow-sm">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <span className="text-muted-foreground sm:text-sm">$</span>
-                        </div>
-                        <ValidatedInput
-                          id="amount"
-                          name="amount"
-                          type="text"
-                          placeholder="0.00"
-                          value={formData.amount}
-                          onChange={handleInputChange}
-                          validate={validateAmount}
-                          label="Amount"
-                          helperText="Enter the maximum amount for this budget"
-                          className="block w-full rounded-md border-0 py-2 pl-7 pr-12 text-sm ring-1 ring-inset ring-input focus:ring-2 focus:ring-inset focus:ring-primary"
-                        />
-                      </div>
-                      <motion.div 
-                        className="absolute bottom-0 left-0 h-[2px] bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: formData.amount ? "100%" : "0%" }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="period" className="block text-sm font-medium">
-                      Budget Period
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="period"
-                        name="period"
-                        value={formData.period}
-                        onChange={handleInputChange}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      >
-                        <option value="monthly">Monthly</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="yearly">Yearly</option>
-                      </select>
-                      <motion.div 
-                        className="absolute bottom-0 left-0 h-[2px] bg-primary"
-                        initial={{ width: "100%" }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end gap-2 pt-2">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        resetForm();
-                        setShowForm(false);
-                      }}
-                      disabled={formLoading}
-                    >
-                      Cancel
-                    </Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button 
-                      type="submit" 
-                      disabled={formLoading}
-                      className="relative overflow-hidden"
-                    >
-                      <span className="relative z-10 flex items-center gap-2">
-                        {formLoading ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            {isEditing ? "Update" : "Create"} Budget
-                          </>
-                        )}
-                      </span>
-                      <motion.div 
-                        className="absolute inset-0 bg-primary-gradient"
-                        animate={{ 
-                          x: formLoading ? "0%" : ["0%", "100%"],
-                        }}
-                        transition={{ 
-                          duration: formLoading ? 0 : 2, 
-                          repeat: formLoading ? 0 : Infinity,
-                          repeatType: "reverse"
-                        }}
-                      />
-                    </Button>
-                  </motion.div>
-                </div>
-              </form>
-            </div>
+                </Button>
+              </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Budget Progress - Modern visualization */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden mb-6">
         <div className="border-b p-5">
           <h2 className="text-xl font-bold">Budget Progress</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -707,88 +814,111 @@ export default function BudgetPage() {
         </div>
         
         {categorySpending.length > 0 ? (
-          <div className="divide-y">
+          <div className="divide-y p-4">
             {categorySpending.map((category) => (
-              <div key={category.category_id}>
-                <div 
-                  className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => toggleCategoryExpansion(category.category_id)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
+              <motion.div
+                key={category.category_id}
+                className="bg-card border rounded-lg mb-4 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                whileTap={{ scale: 0.98 }}
+                onTouchStart={(e) => handleTouchStart(e, category.category_id)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
                       {getCategoryStatusIcon(category.percentage)}
-                      <span className="font-medium">
-                        {category.category_name}
+                      <h3 className="font-medium line-clamp-1">{category.category_name}</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2 items-center mt-1 sm:mt-0">
+                      <div className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap">
+                        {formatCurrency(category.budget)} budget
+                      </div>
+                      <div className={`text-sm px-3 py-1 rounded-full whitespace-nowrap ${
+                        category.percentage > 100
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {formatCurrency(category.spent)} spent
+                      </div>
+                      <span
+                        className={`text-sm font-medium ml-1 whitespace-nowrap ${
+                          category.percentage > 100
+                            ? "text-red-600 dark:text-red-400"
+                            : category.percentage > 85
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {Math.round(category.percentage)}%
                       </span>
                     </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className={`font-medium ${category.percentage > 100 ? 'text-red-500' : ''}`}>
-                          {Math.round(category.percentage)}%
+                  </div>
+
+                  <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
+                    <motion.div
+                      className={`h-full ${getProgressBarColor(category.percentage)}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: getProgressBarWidth(category.percentage) }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <div>
+                      {category.percentage <= 100 ? (
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(category.budget - category.spent)} remaining
                         </span>
-                      </div>
-                      {expandedCategory === category.category_id ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-red-600 dark:text-red-400">
+                          {formatCurrency(category.spent - category.budget)} over budget
+                        </span>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${getProgressBarColor(category.percentage)} transition-all`}
-                      style={{ width: getProgressBarWidth(category.percentage) }}
-                    ></div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(
+                          budgets.find((b) => b.category_id === category.category_id) || {
+                            id: "",
+                            user_id: "",
+                            category_id: category.category_id,
+                            category_name: category.category_name,
+                            amount: category.budget,
+                            period: "monthly",
+                            created_at: ""
+                          }
+                        )}
+                        className="h-10 w-10 p-0 touch-manipulation"
+                        aria-label={`Edit budget for ${category.category_name}`}
+                        title={`Edit budget for ${category.category_name}`}
+                      >
+                        <Pencil className="h-5 w-5" />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const budget = budgets.find((b) => b.category_id === category.category_id);
+                          if (budget) handleDelete(budget.id);
+                        }}
+                        className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 touch-manipulation"
+                        aria-label={`Delete budget for ${category.category_name}`}
+                        title={`Delete budget for ${category.category_name}`}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                
-                {expandedCategory === category.category_id && (
-                  <div className="px-4 pb-4 bg-muted/30">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div className="rounded-md bg-background p-3 border">
-                        <span className="text-muted-foreground">Spent</span>
-                        <p className="font-medium text-lg">{formatCurrency(category.spent)}</p>
-                      </div>
-                      
-                      <div className="rounded-md bg-background p-3 border">
-                        <span className="text-muted-foreground">Budget</span>
-                        <p className="font-medium text-lg">{formatCurrency(category.budget)}</p>
-                      </div>
-                      
-                      <div className="rounded-md bg-background p-3 border">
-                        <span className="text-muted-foreground">
-                          {category.percentage > 100 ? 'Over Budget' : 'Remaining'}
-                        </span>
-                        <p className={`font-medium text-lg ${category.percentage > 100 ? 'text-red-500' : 'text-emerald-500'}`}>
-                          {category.percentage > 100 
-                            ? `${formatCurrency(category.spent - category.budget)}`
-                            : `${formatCurrency(category.budget - category.spent)}`}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {category.budget > 0 && (
-                      <div className="mt-3 flex justify-end">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const matchingBudget = budgets.find(b => b.category_id === category.category_id);
-                            if (matchingBudget) {
-                              handleEdit(matchingBudget);
-                            }
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Budget
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (
@@ -801,7 +931,7 @@ export default function BudgetPage() {
               Start by creating your first budget to track your spending
             </p>
             {!showForm && (
-              <Button onClick={() => setShowForm(true)}>
+              <Button onClick={() => setShowForm(true)} className="min-h-[44px]">
                 <Plus className="mr-2 h-4 w-4" /> Add Your First Budget
               </Button>
             )}
@@ -809,7 +939,7 @@ export default function BudgetPage() {
         )}
       </div>
 
-      {/* Budget Overview Table - Improved with better structure */}
+      {/* Budget Overview Table - Convert to cards on mobile */}
       {budgets.length > 0 && (
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
           <div className="p-5 border-b">
@@ -819,7 +949,8 @@ export default function BudgetPage() {
             </p>
           </div>
           
-          <div className="overflow-x-auto">
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
@@ -867,8 +998,157 @@ export default function BudgetPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Mobile card view */}
+          <div className="md:hidden p-4 space-y-3">
+            {budgets.map((budget) => (
+              <div 
+                key={budget.id} 
+                className="bg-card border rounded-lg p-4 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center mb-2">
+                  <div className="h-2 w-2 rounded-full bg-primary mr-2"></div>
+                  <span className="font-medium">{budget.category_name}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div>
+                    <span className="text-muted-foreground">Period:</span>
+                    <p className="font-medium capitalize">{budget.period}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Amount:</span>
+                    <p className="font-medium">{formatCurrency(budget.amount)}</p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 w-10 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    onClick={() => handleEdit(budget)}
+                    aria-label={`Edit budget for ${budget.category_name}`}
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={() => handleDelete(budget.id)}
+                    aria-label={`Delete budget for ${budget.category_name}`}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* Add a confirmation modal */}
+      <AnimatePresence>
+        {showConfirmModal && confirmAction && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowConfirmModal(false)}
+          >
+            <motion.div
+              className="bg-card rounded-lg shadow-lg max-w-md w-full p-6"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start mb-4">
+                <div className="bg-primary/10 rounded-full p-2 mr-3">
+                  <Info className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-1">{confirmAction.title}</h3>
+                  <p className="text-muted-foreground">{confirmAction.message}</p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="min-w-[80px] min-h-[44px]"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => confirmAction.action()}
+                  className="min-w-[80px] min-h-[44px]"
+                >
+                  Confirm
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scroll indicator for mobile */}
+      <AnimatePresence>
+        {showScrollIndicator && (
+          <motion.div 
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-primary/90 text-white rounded-full px-4 py-2 shadow-lg z-40 text-sm md:hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="flex items-center gap-2">
+              <span>Swipe cards to edit or delete</span>
+              <div className="flex gap-1">
+                <motion.div 
+                  animate={{ x: [0, -3, 0] }} 
+                  transition={{ repeat: Infinity, duration: 1 }}
+                >
+                  ←
+                </motion.div>
+                <motion.div 
+                  animate={{ x: [0, 3, 0] }} 
+                  transition={{ repeat: Infinity, duration: 1 }}
+                >
+                  →
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Floating Action Button */}
+      <AnimatePresence>
+        {!showForm && (
+          <motion.div
+            className="fixed bottom-6 right-6 md:hidden z-30"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", duration: 0.4 }}
+          >
+            <Button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+                // Scroll to top handled by useEffect now
+              }}
+              size="lg"
+              className="h-14 w-14 rounded-full shadow-lg p-0 touch-manipulation"
+              aria-label="Add new budget"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 

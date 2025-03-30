@@ -1,13 +1,15 @@
-import React, { useState, useEffect, forwardRef } from 'react';
+import React, { useState, useEffect, forwardRef, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { ValidationResult } from '@/lib/validation';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
+  label?: string;
   error?: string;
   helperText?: string;
   validate?: (value: string) => ValidationResult;
   onValidationChange?: (isValid: boolean) => void;
+  prefix?: string | ReactNode;
+  validationFn?: (value: string) => ValidationResult;
 };
 
 const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
@@ -17,16 +19,21 @@ const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
     label, 
     error, 
     helperText, 
-    validate, 
+    validate,
+    validationFn,
     onValidationChange,
     onChange,
     onBlur,
     required,
+    prefix,
     ...props 
   }, ref) => {
     const [validationError, setValidationError] = useState<string | undefined>(error);
     const [touched, setTouched] = useState(false);
     const [value, setValue] = useState(props.value || props.defaultValue || '');
+    
+    // Use either validate or validationFn prop (for backward compatibility)
+    const validationFunction = validate || validationFn;
     
     // Handle external error prop changes
     useEffect(() => {
@@ -35,14 +42,14 @@ const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
     
     // Run validation when value changes and field has been touched
     useEffect(() => {
-      if (touched && validate) {
-        const result = validate(value as string);
+      if (touched && validationFunction) {
+        const result = validationFunction(value as string);
         setValidationError(result.isValid ? undefined : result.message);
         if (onValidationChange) {
           onValidationChange(result.isValid);
         }
       }
-    }, [value, touched, validate, onValidationChange]);
+    }, [value, touched, validationFunction, onValidationChange]);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setValue(e.target.value);
@@ -53,8 +60,8 @@ const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
     
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       setTouched(true);
-      if (validate) {
-        const result = validate(e.target.value);
+      if (validationFunction) {
+        const result = validationFunction(e.target.value);
         setValidationError(result.isValid ? undefined : result.message);
         if (onValidationChange) {
           onValidationChange(result.isValid);
@@ -73,6 +80,7 @@ const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
       type,
       className: cn(
         "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        prefix && "pl-8",
         hasError && "border-red-500 focus-visible:ring-red-500",
         className
       ),
@@ -90,17 +98,26 @@ const ValidatedInput = forwardRef<HTMLInputElement, InputProps>(
     
     return (
       <div className="space-y-1">
-        <label 
-          htmlFor={props.id} 
-          className="block text-sm font-medium leading-6 text-muted-foreground"
-        >
-          {label}
-          {required && <span className="ml-1 text-red-500">*</span>}
-        </label>
-        <input
-          ref={ref}
-          {...inputProps}
-        />
+        {label && (
+          <label 
+            htmlFor={props.id} 
+            className="block text-sm font-medium leading-6 text-muted-foreground"
+          >
+            {label}
+            {required && <span className="ml-1 text-red-500">*</span>}
+          </label>
+        )}
+        <div className="relative">
+          {prefix && (
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              {prefix}
+            </div>
+          )}
+          <input
+            ref={ref}
+            {...inputProps}
+          />
+        </div>
         {hasError ? (
           <p 
             className="text-xs text-red-500 mt-1" 

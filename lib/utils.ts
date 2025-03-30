@@ -45,77 +45,73 @@ export async function ensureUserProfile(
     
     console.log("Checking profile for user:", userId);
     
-    // Try to directly insert the profile first (upsert approach)
-    const { error: upsertError } = await supabase
+    // Check if profile exists first
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .upsert({
-        id: userId,
-        email: email || '',
-        name: name || 'User',
-        currency: currency,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id',
-        ignoreDuplicates: false
-      });
+      .select('id, name, currency')
+      .eq('id', userId)
+      .maybeSingle();
       
-    if (upsertError) {
-      console.error("Error upserting profile:", upsertError);
-      
-      // Fallback - try to check if profile exists
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, currency")
-        .eq("id", userId)
-        .maybeSingle();
-        
-      if (error) {
-        console.error("Profile check error:", error);
-        return false;
-      }
-      
-      // Profile exists - ensure it has up-to-date values
-      if (data) {
-        // If profile exists but is missing important fields, update it
-        if (!data.name || !data.currency) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              name: name || data.name || 'User',
-              currency: currency || data.currency || 'USD',
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", userId);
-            
-          if (updateError) {
-            console.error("Error updating profile fields:", updateError);
-          }
-        }
-        
-        return true;
-      }
-      
-      // Last resort - try to create it
-      const { error: createError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: email || '',
-          name: name || 'User',
-          currency: currency,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        
-      if (createError) {
-        console.error("Error creating profile:", createError);
-        return false;
-      }
+    if (profileError) {
+      console.error("Error checking profile:", JSON.stringify(profileError));
     }
     
-    return true;
+    // If profile exists, update if necessary
+    if (profileData) {
+      // Only update if name or currency is missing
+      if (!profileData.name || !profileData.currency) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            name: name || profileData.name || 'User',
+            currency: currency || profileData.currency || 'USD',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error("Error updating profile:", JSON.stringify(updateError));
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    // Profile doesn't exist - try with RPC function if available
+    try {
+      // Try calling a server function to create the profile (bypasses RLS)
+      const { error: rpcError } = await supabase.rpc('create_user_profile', {
+        user_id: userId,
+        user_email: email || '',
+        user_name: name || 'User',
+        user_currency: currency || 'USD'
+      });
+      
+      if (rpcError) {
+        console.error("Error creating profile via RPC:", JSON.stringify(rpcError));
+        // Fall back to direct insert as last resort
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: email || '',
+            name: name || 'User',
+            currency: currency || 'USD',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (insertError) {
+          console.error("Error creating profile directly:", JSON.stringify(insertError));
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (createErr) {
+      console.error("Caught error during profile creation:", createErr);
+      return false;
+    }
   } catch (error) {
     console.error("Profile check error:", error);
     return false;
