@@ -1,0 +1,263 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+ 
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 210 20% 98%;
+ 
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+ 
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+ 
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
+ 
+    --radius: 0.75rem;
+  }
+ 
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+ 
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+ 
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+ 
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
+ 
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+ 
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+ 
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+ 
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 12.2% 83.9%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Improve dropdown contrast */
+  select {
+    @apply bg-background text-foreground border-input;
+    color-scheme: light dark;
+  }
+  
+  .dark select {
+    @apply text-white bg-gray-800 border-gray-700;
+    color-scheme: dark;
+  }
+  
+  select option {
+    @apply bg-white text-gray-900;
+    color-scheme: light;
+  }
+  
+  .dark select option {
+    @apply bg-gray-800 text-white;
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .sidebar-open {
+    overflow: hidden;
+  }
+  
+  /* Add specific styles for the sidebar when open */
+  html.sidebar-open {
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* Add styles for form drawer */
+  html.form-drawer-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
+  /* Glass effect for cards */
+  .bg-glass {
+    @apply bg-background/80 backdrop-blur-md border border-white/10;
+  }
+  
+  /* Custom focus styles */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+  
+  /* Enhanced gradient texts */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500;
+  }
+  
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400;
+  }
+  
+  .text-gradient-success {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-green-500 dark:from-emerald-400 dark:to-green-400;
+  }
+  
+  .text-gradient-warning {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-yellow-500 dark:from-amber-400 dark:to-yellow-400;
+  }
+  
+  .text-gradient-danger {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-rose-600 to-red-600 dark:from-rose-500 dark:to-red-500;
+  }
+  
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400;
+  }
+  
+  /* Enhanced background gradients */
+  .bg-gradient-page {
+    @apply bg-gradient-to-b from-background via-background to-muted/30;
+  }
+  
+  .bg-gradient-card {
+    @apply bg-gradient-to-br from-card to-card/80;
+  }
+  
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500;
+  }
+  
+  .bg-gradient-success {
+    @apply bg-gradient-to-r from-emerald-500 to-green-500 dark:from-emerald-400 dark:to-green-400;
+  }
+  
+  .bg-gradient-warning {
+    @apply bg-gradient-to-r from-amber-500 to-yellow-500 dark:from-amber-400 dark:to-yellow-400;
+  }
+  
+  .bg-gradient-danger {
+    @apply bg-gradient-to-r from-rose-600 to-red-600 dark:from-rose-500 dark:to-red-500;
+  }
+  
+  /* Enhanced progress bars */
+  .progress-bar-container {
+    @apply h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700;
+  }
+  
+  .progress-bar-success {
+    @apply h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-500 dark:from-emerald-400 dark:to-green-400;
+  }
+  
+  .progress-bar-warning {
+    @apply h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 dark:from-amber-400 dark:to-yellow-400;
+  }
+  
+  .progress-bar-danger {
+    @apply h-full rounded-full bg-gradient-to-r from-rose-600 to-red-600 dark:from-rose-500 dark:to-red-500;
+  }
+  
+  /* Better touch targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Responsive paddings */
+  .section-padding {
+    @apply py-8 md:py-12 lg:py-16;
+  }
+  
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:border-primary/20;
+  }
+  
+  /* Swipeable items */
+  .swipeable-item {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+  
+  .swipe-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    transform: translateX(100%);
+    transition: transform 0.2s ease-out;
+  }
+  
+  .swipeable-item.swiping .swipe-actions {
+    transform: translateX(0);
+  }
+  
+  /* Skeleton loading animation */
+  .skeleton-loader {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Pull to refresh animation */
+  .pull-indicator {
+    @apply flex items-center justify-center py-4;
+    transition: height 0.2s ease-out;
+  }
+  
+  /* Improved dropdown styles for better contrast */
+  .high-contrast-dropdown {
+    @apply border-2 border-input bg-background text-foreground font-medium;
+  }
+  
+  .dark .high-contrast-dropdown {
+    @apply border-gray-600 bg-gray-800 text-white;
+  }
+  
+  /* Strengthen option contrast */
+  select.high-contrast-dropdown option {
+    background-color: white;
+    color: black;
+    font-weight: 500;
+  }
+  
+  .dark select.high-contrast-dropdown option {
+    background-color: #1f2937;
+    color: white;
+    font-weight: 500;
+  }
+} 
