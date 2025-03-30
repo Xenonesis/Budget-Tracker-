@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, memo } from "react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency, formatDate, ensureUserProfile, calculateNextRecurringDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateWithTimezone, ensureUserProfile, calculateNextRecurringDate, getUserTimezone } from "@/lib/utils";
 import { Currency } from "@/components/ui/currency";
 import { useUserPreferences } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,8 @@ import {
   ChevronDown,
   FileSpreadsheet,
   FileText,
-  RefreshCw
+  RefreshCw,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddTransactionButton } from "@/components/ui/bottom-navigation";
@@ -47,6 +48,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import styles from './transactions.module.css';
+import { 
+  validateAmount, 
+  validateDate, 
+  validateDescription, 
+  validateCategory, 
+  validateTransactionType, 
+  validateForm 
+} from "@/lib/validation";
+import { ValidatedInput, ValidatedTextarea } from "@/components/ui/validated-input";
 
 interface Transaction {
   id: string;
@@ -110,6 +120,107 @@ interface FormData {
   recurring_end_date: string;
 }
 
+// 1. Implement event delegation for transaction list items
+const TransactionRow = memo(({ transaction, onEdit, onDelete }: { 
+  transaction: Transaction, 
+  onEdit: (t: Transaction) => void, 
+  onDelete: (id: string) => void 
+}) => {
+  const userPrefs = useUserPreferences();
+  
+  return (
+    <tr className={styles.transactionRow} data-id={transaction.id}>
+      <td className={styles.dateColumn}>
+        {formatDateWithTimezone(transaction.date, userPrefs.timezone)}
+      </td>
+      <td className={styles.typeColumn}>
+        {transaction.type === "income" ? (
+          <ArrowUpCircle className="w-4 h-4 text-green-500 mr-1" />
+        ) : (
+          <ArrowDownCircle className="w-4 h-4 text-red-500 mr-1" />
+        )}
+        {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+      </td>
+      <td className={styles.categoryColumn}>
+        {transaction.category_name || "Uncategorized"}
+      </td>
+      <td className={styles.descriptionColumn}>{transaction.description}</td>
+      <td className={`${styles.amountColumn} ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
+        <Currency
+          value={transaction.amount}
+          currency={userPrefs.currency}
+        />
+      </td>
+      <td className={styles.actionsColumn}>
+        <div className="flex space-x-2">
+          <button className="text-blue-500 hover:text-blue-700" aria-label="Edit">
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button className="text-red-500 hover:text-red-700" aria-label="Delete">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+TransactionRow.displayName = 'TransactionRow';
+
+// 2. Replace the transactions table with a memoized component
+const TransactionsTable = memo(({ 
+  transactions, 
+  onEdit, 
+  onDelete, 
+  onSort, 
+  sortField, 
+  sortDirection 
+}: { 
+  transactions: Transaction[], 
+  onEdit: (t: Transaction) => void, 
+  onDelete: (id: string) => void,
+  onSort: (field: string) => void,
+  sortField: string,
+  sortDirection: "asc" | "desc"
+}) => {
+  return (
+    <div className={styles.tableContainer}>
+      <table className={styles.transactionsTable}>
+        <thead>
+          <tr>
+            <th onClick={() => onSort("date")} className={styles.sortableHeader}>
+              Date {sortField === "date" && (sortDirection === "asc" ? "↑" : "↓")}
+            </th>
+            <th onClick={() => onSort("type")} className={styles.sortableHeader}>
+              Type {sortField === "type" && (sortDirection === "asc" ? "↑" : "↓")}
+            </th>
+            <th onClick={() => onSort("category_name")} className={styles.sortableHeader}>
+              Category {sortField === "category_name" && (sortDirection === "asc" ? "↑" : "↓")}
+            </th>
+            <th onClick={() => onSort("description")} className={styles.sortableHeader}>
+              Description {sortField === "description" && (sortDirection === "asc" ? "↑" : "↓")}
+            </th>
+            <th onClick={() => onSort("amount")} className={styles.sortableHeader}>
+              Amount {sortField === "amount" && (sortDirection === "asc" ? "↑" : "↓")}
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="transactions-tbody">
+          {transactions.map((transaction) => (
+            <TransactionRow 
+              key={transaction.id} 
+              transaction={transaction} 
+              onEdit={onEdit} 
+              onDelete={onDelete} 
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+});
+TransactionsTable.displayName = 'TransactionsTable';
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -118,7 +229,7 @@ export default function TransactionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const { currency, setCurrency, setUsername } = useUserPreferences();
+  const { currency, setCurrency, setUsername, ...userPreferences } = useUserPreferences();
   const [showRecurring, setShowRecurring] = useState(false);
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
@@ -129,7 +240,9 @@ export default function TransactionsPage() {
     category_id: "",
     amount: "",
     description: "",
-    date: new Date().toISOString().split("T")[0],
+    date: new Date().toLocaleDateString('en-CA', { 
+      timeZone: userPreferences.timezone || getUserTimezone() 
+    }),
     is_recurring: false,
     recurring_frequency: "monthly",
     recurring_end_date: ""
@@ -189,6 +302,95 @@ export default function TransactionsPage() {
   const [scheduleExportFrequency, setScheduleExportFrequency] = useState<"none" | "weekly" | "monthly">("none");
   const [scheduleExportDay, setScheduleExportDay] = useState<number>(1);
   const [scheduleExportFormat, setScheduleExportFormat] = useState<"csv" | "excel" | "pdf">("csv");
+
+  // Add this useEffect to handle unwanted dropdowns globally
+  useEffect(() => {
+    // Function to remove unwanted dropdowns
+    const removeUnwantedDropdowns = () => {
+      // Target specifically the extra dropdown that shows up
+      const unwantedDropdowns = document.querySelectorAll('.flex-1.rounded-md.border.border-input.bg-transparent.px-3.py-2.text-sm.high-contrast-dropdown');
+      
+      if (unwantedDropdowns.length > 0) {
+        console.log("Found unwanted dropdowns:", unwantedDropdowns.length);
+        unwantedDropdowns.forEach(dropdown => {
+          // Check if it's in the custom category form area
+          const parent = dropdown.closest('.custom-category-form');
+          if (parent) {
+            console.log("Removing unwanted dropdown");
+            (dropdown as HTMLElement).style.display = 'none';
+          }
+        });
+      }
+    };
+
+    // Run immediately
+    removeUnwantedDropdowns();
+    
+    // Also set up a MutationObserver to catch dynamically added elements
+    const observer = new MutationObserver(() => {
+      removeUnwantedDropdowns();
+    });
+    
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Add a new useEffect at the beginning of the component that handles all potential issues
+  useEffect(() => {
+    const removeDuplicateDropdowns = () => {
+      // Find all dropdowns within custom category form areas
+      const customForms = document.querySelectorAll(`.${styles.customCategoryForm}`);
+      customForms.forEach(form => {
+        // Find all select elements inside each form
+        const selects = form.querySelectorAll('select');
+        // If there's more than one select, or if it has the specific class
+        if (selects.length > 0) {
+          selects.forEach(select => {
+            // Check if it's the unwanted select
+            if (select.classList.contains('flex-1')) {
+              select.remove();
+            }
+          });
+        }
+      });
+    };
+
+    // Setup MutationObserver to handle dynamic changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length) {
+          // Check if any added nodes contain selects
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1) { // Element node
+              const element = node as Element;
+              const selects = element.querySelectorAll('select.flex-1');
+              if (selects.length && element.closest(`.${styles.customCategoryForm}`)) {
+                removeDuplicateDropdowns();
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Observe the whole document for DOM changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Initial cleanup
+    setTimeout(removeDuplicateDropdowns, 100);
+    
+    // Cleanup on unmount
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const exportToCSV = () => {
     // Get selected columns
@@ -579,6 +781,42 @@ export default function TransactionsPage() {
       
       console.log("Fetched categories:", data?.length, "items");
       
+      // Debug the categories to ensure they have proper types
+      if (data && data.length > 0) {
+        console.log("Sample categories:", data.slice(0, 3));
+        console.log("Income categories:", data.filter(c => c.type === 'income').length);
+        console.log("Expense categories:", data.filter(c => c.type === 'expense').length);
+        console.log("Both type categories:", data.filter(c => c.type === 'both').length);
+        
+        // Check for categories without proper type and fix them
+        const categoriesWithoutType = data.filter(c => !c.type || !['income', 'expense', 'both'].includes(c.type));
+        if (categoriesWithoutType.length > 0) {
+          console.warn("Found categories without proper type:", categoriesWithoutType);
+          // Fix them by guessing based on name or defaulting to 'expense'
+          for (const category of categoriesWithoutType) {
+            const nameInLowerCase = category.name.toLowerCase();
+            let assumedType = 'expense';
+            
+            // Guess type based on common income category names
+            if (['salary', 'income', 'freelance', 'investment', 'gift', 'refund'].some(term => 
+               nameInLowerCase.includes(term))) {
+              assumedType = 'income';
+            }
+            
+            console.log(`Fixing category "${category.name}" by setting type to "${assumedType}"`);
+            
+            // Update the category type
+            await supabase
+              .from("categories")
+              .update({ type: assumedType })
+              .eq("id", category.id);
+              
+            // Update in local data
+            category.type = assumedType;
+          }
+        }
+      }
+      
       if (!data || data.length === 0) {
         console.log("No categories found, creating defaults");
         await createDefaultCategories(userData.user.id);
@@ -653,12 +891,20 @@ export default function TransactionsPage() {
   }, [categories, formData.type]);
 
   const resetForm = () => {
+    // Get default category based on transaction type
+    const defaultCategory = categories
+      .filter(cat => cat.type === 'expense' || cat.type === 'both')
+      .sort((a, b) => a.name.localeCompare(b.name))
+      [0]?.id || "";
+
     setFormData({
       type: "expense",
-      category_id: "",
+      category_id: defaultCategory, // Use the default category id instead of empty string
       amount: "",
       description: "",
-      date: new Date().toISOString().split("T")[0],
+      date: new Date().toLocaleDateString('en-CA', { 
+        timeZone: userPreferences.timezone || getUserTimezone() 
+      }),
       is_recurring: false,
       recurring_frequency: "monthly",
       recurring_end_date: ""
@@ -701,12 +947,30 @@ export default function TransactionsPage() {
     
     // Special handling for category selection
     if (name === "category_id" && value === "custom") {
+      console.log("Custom category selected, showing custom category form");
       setShowCustomCategoryForm(true);
       // Set newCategory type to match current transaction type
       setNewCategory(prev => ({
         ...prev,
         type: formData.type
       }));
+      
+      // Schedule a cleanup after the form renders
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Use document.querySelector to find any unwanted select elements
+          document.querySelectorAll('select.flex-1.high-contrast-dropdown, select.categoryTypeDropdown').forEach(el => {
+            const parent = el.parentElement;
+            if (parent && parent.querySelector('input[type="hidden"][name="categoryType"]')) {
+              console.log('Found and removing unwanted dropdown');
+              el.remove();
+            }
+          });
+        });
+      });
+    } else if (name === "category_id" && value !== "custom") {
+      // Clear custom category form if not selecting custom
+      setShowCustomCategoryForm(false);
     }
 
     // Special handling for transaction type changes
@@ -718,6 +982,22 @@ export default function TransactionsPage() {
       }));
       
       console.log(`Transaction type changed to: ${value}, updating newCategory type`);
+      
+      // Reset category selection when transaction type changes to ensure compatibility
+      const defaultCategory = categories
+        .filter(cat => cat.type === value || cat.type === 'both')
+        .sort((a, b) => a.name.localeCompare(b.name))
+        [0]?.id || "";
+        
+      // Update form data with new default category based on type
+      setFormData(prev => ({
+        ...prev,
+        [name]: value as 'income' | 'expense',
+        category_id: defaultCategory
+      }));
+      
+      // We already set the form data above, so return early
+      return;
     }
 
     // Clear any custom category error when user changes selection
@@ -736,16 +1016,21 @@ export default function TransactionsPage() {
     };
     
     setFormData(updatedFormData);
-    
-    // Auto-save after a delay
+
+    // Auto-save transaction draft
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     
     autoSaveTimeoutRef.current = setTimeout(() => {
-      if (!isEditing) { // Only auto-save for new transactions
-        saveDraftTransaction(updatedFormData);
-      }
+      localStorage.setItem('transaction-draft', JSON.stringify(updatedFormData));
+      console.log('Transaction draft auto-saved');
+      setHasSavedDraft(true);
+      
+      // Clear the saved status after 2 seconds
+      setTimeout(() => {
+        setHasSavedDraft(false);
+      }, 2000);
     }, 1000);
   };
   
@@ -769,10 +1054,22 @@ export default function TransactionsPage() {
       });
       setIsEditing(true);
       setEditId(transaction.id);
+      
+      // Ensure newCategory type is synced with transaction type
+      setNewCategory(prev => ({
+        ...prev,
+        type: transaction.type
+      }));
     } else {
       resetForm();
       setIsEditing(false);
       setEditId(null);
+      
+      // Ensure newCategory type is set to default (expense)
+      setNewCategory({
+        name: "",
+        type: "expense"
+      });
     }
     
     setShowForm(true);
@@ -808,9 +1105,18 @@ export default function TransactionsPage() {
         return;
       }
 
-      // Validate form data
-      if (!formData.category_id || !formData.amount || !formData.date) {
-        toast.error("Please fill in all required fields.");
+      // Perform comprehensive form validation
+      const validations = [
+        validateTransactionType(formData.type),
+        validateCategory(formData.category_id),
+        validateAmount(formData.amount),
+        validateDate(formData.date),
+        validateDescription(formData.description, false, 500)
+      ];
+
+      const validationResult = validateForm(validations);
+      if (!validationResult.isValid) {
+        toast.error(validationResult.message || "Please correct the errors in the form.");
         setFormLoading(false);
         return;
       }
@@ -818,24 +1124,38 @@ export default function TransactionsPage() {
       // If it's still "custom", that means they didn't click the "Add Category" button
       if (formData.category_id === "custom") {
         toast.error("Please create the custom category before saving the transaction.");
+        setCustomCategoryError(true);
+        setFormLoading(false);
+        return;
+      }
+
+      // Additional check to ensure category_id is a valid UUID
+      if (formData.category_id && !formData.category_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error("Invalid category_id format:", formData.category_id);
+        toast.error("Invalid category selection. Please choose or create a valid category.");
+        setCustomCategoryError(true);
         setFormLoading(false);
         return;
       }
 
       const parsedAmount = parseFloat(formData.amount);
       
-      // Ensure transaction type is validated
-      if (formData.type !== 'income' && formData.type !== 'expense') {
-        console.error("Invalid transaction type:", formData.type);
-        toast.error("Invalid transaction type. Please select income or expense.");
+      // Get selected category to verify it's compatible with transaction type
+      const selectedCategory = categories.find(cat => cat.id === formData.category_id);
+      
+      // Verify the selected category is compatible with the transaction type
+      if (selectedCategory && selectedCategory.type !== 'both' && selectedCategory.type !== formData.type) {
+        toast.error(`This category can only be used for ${selectedCategory.type} transactions.`);
         setFormLoading(false);
         return;
       }
-      
+
       // Log the transaction data before submission for debugging
       console.log("Submitting transaction:", {
         type: formData.type,
         category_id: formData.category_id,
+        category_name: selectedCategory?.name || 'Uncategorized',
+        category_type: selectedCategory?.type,
         amount: parsedAmount,
         description: formData.description || '',
         date: formData.date,
@@ -969,13 +1289,13 @@ export default function TransactionsPage() {
           if (error) {
             console.error("Error inserting transaction:", error);
             
-            // If there was an error, try with a raw SQL approach to bypass type issues
+            // Try with our reliable function
             try {
-              console.log("Trying direct SQL approach for transaction insertion");
+              console.log("Trying improved SQL function for transaction insertion");
               
-              // Use raw SQL query to insert the transaction directly
-              const { data: rawData, error: rawError } = await supabase.rpc(
-                'insert_transaction',
+              // Use our new reliable function
+              const { data: reliableData, error: reliableError } = await supabase.rpc(
+                'insert_transaction_reliable',
                 {
                   p_user_id: userData.user.id,
                   p_type: transactionTypeValue,
@@ -986,32 +1306,32 @@ export default function TransactionsPage() {
                 }
               );
               
-              if (rawError) {
-                console.error("Raw SQL approach also failed:", rawError);
+              if (reliableError) {
+                console.error("Reliable SQL approach failed:", reliableError);
                 
-                // Final fallback - try with simpler version without select
-                const { error: fallbackError } = await supabase
-                  .from("transactions")
-                  .insert({
-                    user_id: userData.user.id,
-                    type: transactionTypeValue,
-                    category_id: formData.category_id,
-                    amount: parsedAmount,
-                    description: formData.description || '',
-                    date: formData.date
-                  });
+                // Emergency direct INSERT as a fallback
+                const { error: emergencyError } = await supabase.from('transactions').insert({
+                  user_id: userData.user.id,
+                  type: transactionTypeValue,
+                  category_id: formData.category_id,
+                  amount: parsedAmount,
+                  description: formData.description || '',
+                  date: formData.date,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
                 
-                if (fallbackError) {
-                  console.error("Final fallback approach also failed:", fallbackError);
-                  toast.error(`Failed to add ${transactionTypeValue} transaction: ${fallbackError.message}`);
+                if (emergencyError) {
+                  console.error("ALL approaches failed:", emergencyError);
+                  toast.error(`Failed to add transaction: ${emergencyError.message}`);
                   setFormLoading(false);
                   return;
+                } else {
+                  console.log("Transaction inserted with emergency approach");
+                  toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
                 }
-                
-                console.log("Transaction inserted successfully with fallback approach");
-                toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
               } else {
-                console.log("Transaction inserted successfully with raw SQL approach");
+                console.log("Transaction inserted successfully with reliable SQL approach");
                 toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
               }
             } catch (sqlError) {
@@ -1103,42 +1423,47 @@ export default function TransactionsPage() {
     });
   };
 
-  // Memoize the filtering of transactions to prevent recalculation on every render
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
-      if (filterType !== "all" && transaction.type !== filterType) return false;
+  // 3. Optimize the filtering and sorting operations
+  const filteredAndSortedTransactions = useMemo(() => {
+    let filtered = [...transactions];
+    
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (t) =>
+          t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (t.category_name && t.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter((t) => t.type === filterType);
+    }
+    
+    // Apply date filter
+    if (dateRange.start && dateRange.end) {
+      filtered = filtered.filter((t) => {
+        const transactionDate = new Date(t.date);
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // Include the entire end date
+        
+        return transactionDate >= startDate && transactionDate <= endDate;
+      });
+    }
+    
+    // Sort the transactions
+    return sortTransactions(filtered);
+  }, [transactions, searchTerm, filterType, dateRange, sortField, sortDirection]);
 
-      if (
-        searchTerm &&
-        !transaction.category_name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-        return false;
+  // 4. Calculate paginated transactions
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedTransactions.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedTransactions, currentPage, itemsPerPage]);
 
-      if (dateRange.start && new Date(transaction.date) < new Date(dateRange.start))
-        return false;
-      if (dateRange.end && new Date(transaction.date) > new Date(dateRange.end))
-        return false;
-
-      return true;
-    });
-  }, [transactions, filterType, searchTerm, dateRange]);
-
-  // Memoize the sorting of transactions to prevent recalculation on every render
-  const sortedTransactions = useMemo(() => {
-    return sortTransactions(filteredTransactions);
-  }, [filteredTransactions, sortField, sortDirection]);
-  
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
-  // Memoize the current page of transactions
-  const currentTransactions = useMemo(() => {
-    return sortedTransactions.slice(indexOfFirstItem, indexOfLastItem);
-  }, [sortedTransactions, indexOfFirstItem, indexOfLastItem]);
-  
-  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage);
 
   const paginate = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -1336,27 +1661,29 @@ export default function TransactionsPage() {
     }
   };
 
-  // Setup intersection observer for infinite scrolling
+  // 6. Use intersection observer more efficiently
   useEffect(() => {
-    if (!loadMoreRef.current || loading) return;
-    
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMoreTransactions();
-        }
-      },
-      { threshold: 0.5 }
-    );
-    
-    observerRef.current.observe(loadMoreRef.current);
-    
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasMore && !loadingMore) {
+        loadMoreTransactions();
       }
     };
-  }, [loading, loadingMore, hasMore, transactions]);
+
+    const observer = new IntersectionObserver(handleIntersection, {
+      rootMargin: '100px',
+    });
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [hasMore, loadingMore]);
 
   // Improved skeleton loader component
   const TransactionSkeleton = () => (
@@ -1688,33 +2015,90 @@ export default function TransactionsPage() {
 
   // Add the handleAddCustomCategory function to handle adding custom categories
   const handleAddCustomCategory = async () => {
-    if (!newCategory.name.trim()) return;
-    
     try {
+      if (!newCategory.name.trim()) {
+        toast.error("Please enter a category name");
+        return;
+      }
+
+      // Debug logs to trace what's happening
+      console.log("Adding custom category with data:", {
+        categoryName: newCategory.name,
+        categoryType: newCategory.type,
+        formDataType: formData.type
+      });
+
       setIsSavingCategory(true);
-      
+
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        toast.error("User not authenticated");
+        toast.error("You must be logged in to create categories");
+        return;
+      }
+      
+      console.log("User authenticated:", userData.user.id);
+      
+      // Check if the category already exists for this user
+      const { data: existingCategories, error: checkError } = await supabase
+        .from("categories")
+        .select("id, name, type")
+        .eq("name", newCategory.name.trim())
+        .eq("user_id", userData.user.id);
+        
+      if (checkError) {
+        console.error("Error checking existing categories:", checkError);
+      }
+      
+      console.log("Existing categories check:", existingCategories);
+      
+      if (existingCategories && existingCategories.length > 0) {
+        console.log("Category already exists, will use existing instead of creating new");
+        // Use the existing category instead of creating a new one
+        const existingCategory = existingCategories[0];
+        
+        // Check if the existing category type matches the current transaction type
+        const currentCategoryType = formData.type === 'income' ? 'income' : 'expense';
+        
+        // If the category exists but with a different type, update it to "both"
+        if (existingCategory.type !== currentCategoryType && existingCategory.type !== 'both') {
+          console.log("Updating category type to 'both'");
+          const { error: updateError } = await supabase
+            .from("categories")
+            .update({ type: 'both' })
+            .eq("id", existingCategory.id);
+            
+          if (updateError) {
+            console.error("Error updating category type:", updateError);
+          } else {
+            console.log("Category type updated successfully to 'both'");
+          }
+          
+          existingCategory.type = 'both';
+        }
+        
+        setFormData(prevForm => ({ ...prevForm, category_id: existingCategory.id }));
+        setCustomCategoryError(false);
+        setShowCustomCategoryForm(false);
+        toast.success(`Using existing category: ${existingCategory.name}`);
+        setIsSavingCategory(false);
         return;
       }
       
       // Force category type to match transaction type to ensure consistency
       const categoryType = formData.type === 'income' ? 'income' : 'expense';
       
-      console.log("Creating new category with FORCED type:", {
+      console.log("Creating new category with type:", {
         name: newCategory.name.trim(),
         type: categoryType,
-        transaction_type: formData.type,
         user_id: userData.user.id
       });
       
-      // Create the new category with consistent typing
+      // Create the new category with correct typing
       const { data, error } = await supabase
         .from("categories")
         .insert({
           name: newCategory.name.trim(),
-          type: categoryType, // Use forced type based on transaction type
+          type: categoryType, // Use type based on transaction type
           user_id: userData.user.id,
           is_active: true
         })
@@ -1728,6 +2112,7 @@ export default function TransactionsPage() {
       
       // Make sure we have the data and the first item
       if (!data || data.length === 0) {
+        console.error("No data returned after category creation");
         toast.error("Failed to retrieve the created category");
         return;
       }
@@ -1737,10 +2122,19 @@ export default function TransactionsPage() {
       toast.success(`Category "${newCategoryData.name}" created successfully`);
       
       // Add the new category to the categories array so it appears in the dropdown immediately
-      setCategories(prevCategories => [...prevCategories, newCategoryData]);
+      setCategories(prevCategories => {
+        const updatedCategories = [...prevCategories, newCategoryData];
+        console.log("Updated categories list:", updatedCategories);
+        return updatedCategories;
+      });
       
       // Select the newly created category
-      setFormData(prevForm => ({ ...prevForm, category_id: newCategoryData.id }));
+      setFormData(prevForm => {
+        const updatedForm = { ...prevForm, category_id: newCategoryData.id };
+        console.log("Updated form with new category:", updatedForm);
+        return updatedForm;
+      });
+      
       setCustomCategoryError(false);
       
       // Reset new category form but keep the type aligned with current transaction type
@@ -1762,83 +2156,8 @@ export default function TransactionsPage() {
     }
   };
 
-  // Memoized virtualized renderers
-  const TableRowRenderer = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
-    const transaction = currentTransactions[index];
-    if (!transaction) return null;
-    
-    return (
-      <div className={styles.virtualizedRow} style={{...style, height: style.height, width: style.width, position: 'absolute', top: style.top, left: 0}}>
-        <div className={styles.virtualizedCell}>
-          <div className={styles.dateColumn}>{formatDate(transaction.date)}</div>
-          <div className={styles.typeColumn}>
-            <span
-              className={`${styles.typeTag} ${
-                transaction.type === "income"
-                  ? styles.incomeTag
-                  : styles.expenseTag
-              }`}
-            >
-              {transaction.type}
-            </span>
-          </div>
-          <div className={styles.categoryColumn}>
-            {transaction.category_name || "Uncategorized"}
-          </div>
-          <div className={styles.descriptionColumn}>
-            {transaction.description}
-          </div>
-          <div
-            className={`${styles.amountColumn} ${
-              transaction.type === "income" ? styles.incomeText : styles.expenseText
-            }`}
-          >
-            <Currency value={transaction.amount} />
-          </div>
-          <div className="w-[10%] min-w-[100px] text-right space-x-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(transaction)}
-                    aria-label={`Edit transaction: ${transaction.description}`}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit transaction</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon" 
-                    onClick={() => handleDelete(transaction.id)}
-                    aria-label={`Delete transaction: ${transaction.description}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Delete transaction</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-    );
-  }, [currentTransactions, handleEdit, handleDelete]);
-
   const CardRenderer = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
-    const transaction = currentTransactions[index];
+    const transaction = paginatedTransactions[index];
     if (!transaction) return null;
     
     return (
@@ -1916,7 +2235,159 @@ export default function TransactionsPage() {
         </div>
       </div>
     );
-  }, [currentTransactions, handleEdit, handleDelete]);
+  }, [paginatedTransactions, handleEdit, handleDelete]);
+
+  const CustomCategoryForm = () => {
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    
+    // Use useLayoutEffect to ensure DOM manipulation happens before render
+    useLayoutEffect(() => {
+      // Define a cleanup function that removes unwanted dropdowns
+      const removeUnwantedDropdowns = () => {
+        if (dropdownRef.current) {
+          // Target both class patterns to ensure we remove all unwanted elements
+          const unwantedDropdowns = dropdownRef.current.querySelectorAll(
+            'select.flex-1.high-contrast-dropdown, select.categoryTypeDropdown, select[name="categoryType"]'
+          );
+          
+          unwantedDropdowns.forEach(dropdown => {
+            console.log("Removing unwanted dropdown:", dropdown);
+            dropdown.remove();
+          });
+        }
+      };
+      
+      // Run immediately and also after a short delay to catch any late additions
+      removeUnwantedDropdowns();
+      
+      // Set a cleanup timer to catch any dropdowns that might appear after initial render
+      const timer = setTimeout(removeUnwantedDropdowns, 100);
+      
+      return () => clearTimeout(timer);
+    }, []);
+  
+    // Determine if we're creating an income or expense category
+    const isIncome = formData.type === "income";
+    const categoryType = isIncome ? "income" : "expense";
+    
+    return (
+      <div ref={dropdownRef} className={`space-y-2 ${styles.customCategoryForm}`}>
+        <input
+          type="text"
+          value={newCategory.name}
+          onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+          placeholder={`New ${categoryType} category name`}
+          className={`w-full rounded-md border-2 ${customCategoryError ? 'border-red-500' : 'border-input'} bg-transparent px-3 py-2 text-sm font-medium`}
+        />
+        
+        {/* This hidden input ensures we maintain the correct category type */}
+        <input 
+          type="hidden" 
+          name="categoryType"
+          value={categoryType} 
+        />
+        
+        {/* Single button for adding the category with appropriate styling */}
+        <Button 
+          type="button" 
+          onClick={() => {
+            // Explicitly ensure the newCategory type matches the transaction type before calling handleAddCustomCategory
+            setNewCategory(prev => ({
+              ...prev,
+              type: formData.type === "income" ? "income" : "expense"
+            }));
+            
+            // Call with slight delay to ensure state is updated
+            setTimeout(handleAddCustomCategory, 0);
+          }}
+          disabled={isSavingCategory || !newCategory.name.trim()}
+          className={`w-full ${isIncome ? 'bg-green-600 hover:bg-green-700' : 'bg-primary hover:bg-primary/90'} text-primary-foreground`}
+        >
+          {isSavingCategory ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current mr-2"></div>
+              Saving {isIncome ? "Income" : "Expense"} Category...
+            </>
+          ) : (
+            `Add ${isIncome ? "Income" : "Expense"} Category`
+          )}
+        </Button>
+        
+        {customCategoryError && (
+          <p className="text-sm text-red-500">
+            Please create a category or select an existing one
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  // 5. Implement event delegation for transaction list
+  useEffect(() => {
+    const handleTableClick = (e: MouseEvent) => {
+      // Find the closest parent transaction row
+      const row = (e.target as HTMLElement).closest('tr[data-id]');
+      if (!row) return;
+      
+      const transactionId = row.getAttribute('data-id');
+      if (!transactionId) return;
+      
+      // Find which button was clicked
+      const editButton = (e.target as HTMLElement).closest('button[aria-label="Edit"]');
+      const deleteButton = (e.target as HTMLElement).closest('button[aria-label="Delete"]');
+      
+      if (editButton) {
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (transaction) {
+          handleEdit(transaction);
+        }
+      } else if (deleteButton) {
+        handleDelete(transactionId);
+      }
+    };
+    
+    const tbody = document.getElementById('transactions-tbody');
+    if (tbody) {
+      tbody.addEventListener('click', handleTableClick);
+    }
+    
+    return () => {
+      if (tbody) {
+        tbody.removeEventListener('click', handleTableClick);
+      }
+    };
+  }, [transactions, handleEdit, handleDelete]);
+
+  // Use useEffect to add CSS to prevent duplicate form fields
+  useEffect(() => {
+    // Add a style element to fix duplicate fields in the transaction form
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Fix for duplicate form fields in transaction modal */
+      .transaction-form-container label[for="transaction-type"]:not(:first-of-type),
+      .transaction-form-container select[name="type"]:not(:first-of-type),
+      .transaction-form-container label[for="transaction-category"]:not(:first-of-type),
+      .transaction-form-container select[name="category_id"]:not(:first-of-type),
+      .transaction-form-container label[for="transaction-amount"]:not(:first-of-type),
+      .transaction-form-container input[name="amount"]:not(:first-of-type),
+      .transaction-form-container label[for="transaction-date"]:not(:first-of-type),
+      .transaction-form-container input[name="date"]:not(:first-of-type),
+      .transaction-form-container label[for="transaction-description"]:not(:first-of-type),
+      .transaction-form-container textarea[name="description"]:not(:first-of-type) {
+        display: none !important;
+      }
+      
+      /* Hide any duplicate form elements */
+      .transaction-form-container .space-y-4 > div:nth-of-type(5) ~ div {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   if (loading && transactions.length === 0) {
     return (
@@ -2230,29 +2701,16 @@ export default function TransactionsPage() {
                   className="rounded-full p-2 text-muted-foreground hover:bg-muted"
                   aria-label="Close form"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  <X size={20} />
                 </button>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Form Content */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Type and Amount */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="transaction-type" className="mb-2 block text-sm font-medium">
-                      Type
+                      Type <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="transaction-type"
@@ -2260,7 +2718,7 @@ export default function TransactionsPage() {
                       value={formData.type}
                       onChange={handleInputChange}
                       disabled={formLoading}
-                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary high-contrast-dropdown"
+                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
                       required
                     >
                       <option value="expense">Expense</option>
@@ -2270,142 +2728,72 @@ export default function TransactionsPage() {
 
                   <div>
                     <label htmlFor="transaction-amount" className="mb-2 block text-sm font-medium">
-                      Amount
+                      Amount <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <input
-                        id="transaction-amount"
-                        name="amount"
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        disabled={formLoading}
-                        className="w-full rounded-md border-2 border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary font-medium"
-                        required
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <span className="text-sm text-muted-foreground">{currency}</span>
-                      </div>
-                    </div>
+                    <input
+                      id="transaction-amount"
+                      name="amount"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      disabled={formLoading}
+                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
+                      required
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Enter amount in {currency}
+                    </p>
                   </div>
                 </div>
 
+                {/* Category */}
                 <div>
-                  <label htmlFor="category_id" className="mb-2 block text-sm font-medium">
-                    Category
+                  <label htmlFor="transaction-category" className="mb-2 block text-sm font-medium">
+                    Category <span className="text-red-500">*</span>
                   </label>
+                  <select
+                    id="transaction-category"
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleInputChange}
+                    disabled={formLoading}
+                    className={`w-full rounded-md border ${customCategoryError ? 'border-red-500' : 'border-input'} bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary`}
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    {categories
+                      .filter(category => category.type === formData.type || category.type === 'both')
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    <option value="custom">+ Add new category</option>
+                  </select>
+                  {customCategoryError && (
+                    <p className="mt-1 text-xs text-red-500" role="alert">
+                      Please select a valid category or create a new one
+                    </p>
+                  )}
                   
-                  {formData.category_id === "custom" ? (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={newCategory.name}
-                        onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                        placeholder="New category name"
-                        className="w-full rounded-md border-2 border-input bg-transparent px-3 py-2 text-sm font-medium"
-                      />
-                      <div className="flex space-x-2">
-                        {/* Hidden type dropdown - type is automatically determined by transaction type */}
-                        <input 
-                          type="hidden" 
-                          value={formData.type === "income" ? "income" : "expense"} 
-                        />
-                        <Button 
-                          type="button" 
-                          onClick={handleAddCustomCategory}
-                          disabled={isSavingCategory || !newCategory.name.trim()}
-                          size="sm"
-                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                          {isSavingCategory ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current mr-2"></div>
-                              Saving {formData.type === "income" ? "Income" : "Expense"} Category...
-                            </>
-                          ) : (
-                            `Add ${formData.type === "income" ? "Income" : "Expense"} Category`
-                          )}
-                        </Button>
-                      </div>
-                      {customCategoryError && (
-                        <p className="text-sm text-red-500">
-                          Please create a category or select an existing one
-                        </p>
-                      )}
+                  {/* Show custom category form when "custom" is selected */}
+                  {formData.category_id === "custom" && (
+                    <div className="mt-3 p-3 border rounded-md bg-background/50">
+                      <h4 className="text-sm font-medium mb-2">Create New Category</h4>
+                      {console.log("Rendering custom category form, showCustomCategoryForm=", showCustomCategoryForm)}
+                      <CustomCategoryForm />
                     </div>
-                  ) : (
-                    <>
-                      {frequentCategories && frequentCategories.length > 0 && (
-                        <div className="mb-2">
-                          <p className="text-sm font-medium mb-2">Frequently used:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {frequentCategories
-                              .filter(cat => cat.type === formData.type || cat.type === 'both')
-                              .map((category) => (
-                                <Button
-                                  key={category.id}
-                                  type="button"
-                                  size="sm"
-                                  variant={formData.category_id === category.id ? "default" : "outline"}
-                                  className="rounded-full text-xs px-3 py-1 h-auto"
-                                  onClick={() => {
-                                    setFormData({ ...formData, category_id: category.id });
-                                    setCustomCategoryError(false);
-                                  }}
-                                >
-                                  {category.name}
-                                </Button>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <select
-                        id="category_id"
-                        value={formData.category_id}
-                        onChange={(e) => {
-                          setFormData({ ...formData, category_id: e.target.value });
-                          setCustomCategoryError(false);
-                        }}
-                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary high-contrast-dropdown"
-                        required
-                      >
-                        <option value="" disabled>Select a category</option>
-                        {categories
-                          .filter(cat => cat.type === formData.type || cat.type === 'both')
-                          .map(category => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))
-                        }
-                        <option value="custom">+ Create new category</option>
-                      </select>
-                    </>
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="transaction-description" className="mb-2 block text-sm font-medium">
-                    Description
-                  </label>
-                  <input
-                    id="transaction-description"
-                    name="description"
-                    placeholder="Enter description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border-2 border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary font-medium"
-                  />
-                </div>
-
+                {/* Date */}
                 <div>
                   <label htmlFor="transaction-date" className="mb-2 block text-sm font-medium">
-                    Date
+                    Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="transaction-date"
@@ -2414,9 +2802,29 @@ export default function TransactionsPage() {
                     value={formData.date}
                     onChange={handleInputChange}
                     disabled={formLoading}
-                    className="w-full rounded-md border-2 border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary font-medium"
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label htmlFor="transaction-description" className="mb-2 block text-sm font-medium">
+                    Description
+                  </label>
+                  <textarea
+                    id="transaction-description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    disabled={formLoading}
+                    placeholder="Enter transaction details"
+                    rows={3}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Optional - Add details about this transaction (max 500 characters)
+                  </p>
                 </div>
 
                 {/* Add recurring transaction toggle */}
@@ -2444,9 +2852,10 @@ export default function TransactionsPage() {
                       </label>
                       <select
                         id="recurring_frequency"
+                        name="recurring_frequency"
                         value={formData.recurring_frequency}
-                        onChange={(e) => setFormData({ ...formData, recurring_frequency: e.target.value as any })}
-                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary high-contrast-dropdown"
+                        onChange={handleInputChange}
+                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         required
                       >
                         <option value="daily">Daily</option>
@@ -2465,8 +2874,9 @@ export default function TransactionsPage() {
                       <input
                         type="date"
                         id="recurring_end_date"
+                        name="recurring_end_date"
                         value={formData.recurring_end_date}
-                        onChange={(e) => setFormData({ ...formData, recurring_end_date: e.target.value })}
+                        onChange={handleInputChange}
                         className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -2476,6 +2886,7 @@ export default function TransactionsPage() {
                   </div>
                 )}
 
+                {/* Action Buttons */}
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button
                     type="button"
@@ -2694,7 +3105,7 @@ export default function TransactionsPage() {
             <>
               {loading ? (
                 <TransactionSkeleton />
-              ) : filteredTransactions.length === 0 ? (
+              ) : filteredAndSortedTransactions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="mb-4 rounded-full bg-primary/10 p-3">
                     <svg
@@ -2783,7 +3194,7 @@ export default function TransactionsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentTransactions.map(transaction => (
+                        {paginatedTransactions.map(transaction => (
                           <tr key={transaction.id} className="border-b hover:bg-muted/50">
                             <td className="px-4 py-3 text-sm">{formatDate(transaction.date)}</td>
                             <td className="px-4 py-3">
@@ -2862,7 +3273,7 @@ export default function TransactionsPage() {
             <>
               {loading ? (
                 <TransactionSkeleton />
-              ) : filteredTransactions.length === 0 ? (
+              ) : filteredAndSortedTransactions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="mb-4 rounded-full bg-primary/10 p-3">
                     <svg
@@ -2901,10 +3312,11 @@ export default function TransactionsPage() {
                   <AutoSizer>
                     {({ height, width }) => (
                       <VirtualizedList
-                        height={height}
-                        itemCount={currentTransactions.length}
-                        itemSize={120}
-                        width={width}
+                        height={height || 500}
+                        width={width || window.innerWidth}
+                        itemCount={paginatedTransactions.length}
+                        itemSize={180}
+                        overscanCount={5}
                       >
                         {CardRenderer}
                       </VirtualizedList>
@@ -2919,7 +3331,7 @@ export default function TransactionsPage() {
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between border-t p-4 gap-3">
               <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length} transactions
+                Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredAndSortedTransactions.length)} of {filteredAndSortedTransactions.length} transactions
               </div>
               <div className="flex gap-2 order-1 sm:order-2">
                 <Button

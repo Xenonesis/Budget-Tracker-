@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getFromLocalStorage, saveToLocalStorage, STORAGE_KEYS, isOnline, syncOfflineChanges } from "@/lib/utils";
 import Link from "next/link";
 import {
   LineChart,
@@ -37,6 +37,245 @@ interface DashboardStats {
   topCategories: { name: string; count: number; total: number; color: string }[];
 }
 
+// Memoized chart components to prevent unnecessary re-renders
+function ExpenseCategoryChartComponent({ categoryData }: { categoryData: { name: string; value: number; color: string }[] }) {
+  if (categoryData.length === 0) {
+    return (
+      <div className="flex h-80 items-center justify-center text-muted-foreground">
+        No expense data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-80">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={categoryData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => percent < 0.05 ? null : `${name}: ${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            innerRadius={40}
+            fill="#8884d8"
+            dataKey="value"
+            paddingAngle={2}
+          >
+            {categoryData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip 
+            formatter={(value) => formatCurrency(value as number)} 
+            contentStyle={{ backgroundColor: '#1e1e2d', borderColor: '#2d2d3d' }}
+          />
+          <Legend 
+            layout="vertical"
+            align="right"
+            verticalAlign="middle"
+            wrapperStyle={{ paddingLeft: 20 }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+const ExpenseCategoryChart = memo(ExpenseCategoryChartComponent);
+ExpenseCategoryChart.displayName = 'ExpenseCategoryChart';
+
+function IncomeExpenseChartComponent({ monthlyData }: { monthlyData: { name: string; income: number; expense: number }[] }) {
+  return (
+    <div className="h-80">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={monthlyData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fill: '#9ca3af' }}
+          />
+          <YAxis 
+            tick={{ fill: '#9ca3af' }} 
+            tickFormatter={(value) => value === 0 ? '0' : value >= 1000 ? `${value/1000}k` : value.toString()}
+          />
+          <Tooltip 
+            formatter={(value) => formatCurrency(value as number)} 
+            contentStyle={{ backgroundColor: '#1e1e2d', borderColor: '#2d2d3d' }} 
+          />
+          <Legend wrapperStyle={{ paddingTop: 10 }} />
+          <Line
+            type="monotone"
+            dataKey="income"
+            stroke="#10b981"
+            strokeWidth={3}
+            activeDot={{ r: 8 }}
+            dot={{ r: 4 }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="expense" 
+            stroke="#ef4444"
+            strokeWidth={3}
+            dot={{ r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+const IncomeExpenseChart = memo(IncomeExpenseChartComponent);
+IncomeExpenseChart.displayName = 'IncomeExpenseChart';
+
+// Optimize the monthly data calculation with memoization and efficient date handling
+function getMonthlyData(transactions: any[]) {
+  const months = [];
+  const today = new Date();
+  
+  // Create a map for quick lookups instead of repeated filtering
+  const transactionsByMonth = new Map();
+  
+  // Pre-process transactions to group by month
+  transactions.forEach(t => {
+    const tDate = new Date(t.date);
+    const monthYear = `${tDate.getMonth()}-${tDate.getFullYear()}`;
+    
+    if (!transactionsByMonth.has(monthYear)) {
+      transactionsByMonth.set(monthYear, {
+        income: 0,
+        expense: 0
+      });
+    }
+    
+    const monthData = transactionsByMonth.get(monthYear);
+    if (t.type === 'income') {
+      monthData.income += t.amount;
+    } else {
+      monthData.expense += t.amount;
+    }
+  });
+  
+  // Generate the last 6 months data
+  for (let i = 5; i >= 0; i--) {
+    const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthStr = month.toLocaleString('default', { month: 'short' });
+    const monthYear = `${month.getMonth()}-${month.getFullYear()}`;
+    
+    const monthData = transactionsByMonth.get(monthYear) || { income: 0, expense: 0 };
+    
+    months.push({
+      name: monthStr,
+      income: monthData.income,
+      expense: monthData.expense
+    });
+  }
+  
+  return months;
+}
+
+// Optimize category data calculation with a single pass through transactions
+function getCategoryData(transactions: any[]) {
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5"
+  ];
+  
+  // Only consider expenses for the category chart
+  const expenseTransactions = transactions.filter(t => t.type === 'expense');
+  
+  if (expenseTransactions.length === 0) {
+    return [];
+  }
+  
+  // Use a map for O(1) lookup instead of repeated filtering
+  const categorySums = new Map();
+  
+  // Single pass to calculate all category sums
+  expenseTransactions.forEach(t => {
+    const category = t.category || 'Uncategorized';
+    if (!categorySums.has(category)) {
+      categorySums.set(category, 0);
+    }
+    categorySums.set(category, categorySums.get(category) + t.amount);
+  });
+  
+  // Convert to array for chart data
+  const result = Array.from(categorySums.entries()).map(([name, value], index) => ({
+    name,
+    value,
+    color: colors[index % colors.length]
+  }));
+  
+  return result.sort((a, b) => b.value - a.value);
+}
+
+// Generate top categories by usage and spending - optimized to reduce iterations
+const getTopCategories = (transactions: any[]) => {
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5"
+  ];
+  
+  // Only consider expenses for the category analysis
+  const expenseTransactions = transactions.filter(t => t.type === 'expense');
+  
+  if (expenseTransactions.length === 0) {
+    return [];
+  }
+  
+  // Use reduce instead of forEach to minimize iterations
+  const categories = expenseTransactions.reduce((acc, t) => {
+    const categoryName = t.category || 'Uncategorized';
+    
+    if (!acc[categoryName]) {
+      acc[categoryName] = { count: 0, total: 0 };
+    }
+    
+    acc[categoryName].count += 1;
+    acc[categoryName].total += t.amount;
+    
+    return acc;
+  }, {} as Record<string, { count: number; total: number }>);
+  
+  return Object.keys(categories)
+    .map((name, index) => ({
+      name,
+      count: categories[name].count,
+      total: categories[name].total,
+      color: colors[index % colors.length]
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5); // Get top 5 categories
+};
+
+// Use React.memo for optimized rendering of card components
+const StatCard = memo(({ title, value, icon, className = "" }: { 
+  title: string; 
+  value: string | number; 
+  icon?: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={`p-4 rounded-lg border bg-card ${className}`}>
+    <div className="flex justify-between">
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground mb-1">{title}</h3>
+        <p className="text-2xl font-bold">{value}</p>
+      </div>
+      {icon && (
+        <div className="p-2 rounded-full bg-primary/10 text-primary">
+          {icon}
+        </div>
+      )}
+    </div>
+  </div>
+));
+StatCard.displayName = 'StatCard';
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,
@@ -48,189 +287,183 @@ export default function DashboardPage() {
     topCategories: [],
   });
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
 
+  // Monitor online/offline status
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return;
-
-        // Fetch transactions
-        const { data: transactions } = await supabase
-          .from("transactions")
-          .select(`
-            *,
-            categories:category_id (
-              name,
-              type
-            )
-          `)
-          .eq("user_id", userData.user.id)
-          .order("date", { ascending: false });
-
-        if (!transactions) return;
-
-        // Process transactions to include category names
-        const processedTransactions = transactions.map(t => ({
-          ...t,
-          category: t.categories?.name || 'Uncategorized'
-        }));
-
-        // Calculate stats
-        const totalIncome = processedTransactions
-          .filter((t) => t.type === "income")
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalExpense = processedTransactions
-          .filter((t) => t.type === "expense")
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        // Recent transactions
-        const recentTransactions = processedTransactions.slice(0, 5);
-
-        // Monthly data for line chart (last 6 months)
-        const monthlyData = getMonthlyData(processedTransactions);
-
-        // Category data for pie chart
-        const categoryData = getCategoryData(processedTransactions);
-
-        // Get top categories by usage and spending
-        const topCategories = getTopCategories(processedTransactions);
-
-        setStats({
-          totalIncome,
-          totalExpense,
-          balance: totalIncome - totalExpense,
-          recentTransactions,
-          monthlyData,
-          categoryData,
-          topCategories,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
+    const handleOnline = () => {
+      setIsOffline(false);
+      syncData();
     };
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+    };
+    
+    // Check initial status
+    setIsOffline(!navigator.onLine);
+    
+    // Add event listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
+  // Function to sync data with server when online
+  const syncData = async () => {
+    if (isOnline()) {
+      try {
+        // Attempt to sync any offline changes
+        const syncResult = await syncOfflineChanges(supabase);
+        if (syncResult.syncedCount > 0) {
+          // If changes were synced, refresh data from server
+          fetchData();
+        }
+      } catch (error) {
+        console.error("Error syncing offline changes:", error);
+      }
+    }
+  };
+
+  // Fetch data with offline support
+  const fetchData = async () => {
+    setLoading(true);
+    
+    try {
+      // Try to load from localStorage first for immediate display
+      const cachedStats = getFromLocalStorage<DashboardStats>(STORAGE_KEYS.TRANSACTIONS);
+      const lastSync = getFromLocalStorage<number>(STORAGE_KEYS.LAST_SYNC);
+      
+      if (cachedStats) {
+        setStats(cachedStats);
+        setLoading(false);
+        
+        if (lastSync) {
+          const date = new Date(lastSync);
+          setLastSynced(date.toLocaleString());
+        }
+      }
+      
+      // If offline, don't try to fetch from server
+      if (!isOnline()) {
+        setIsOffline(true);
+        if (!cachedStats) {
+          setLoading(false); // No cached data and offline
+        }
+        return;
+      }
+      
+      // Fetch from server if online
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch transactions with a single query
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select(`
+          *,
+          categories:category_id (
+            name,
+            type
+          )
+        `)
+        .eq("user_id", userData.user.id)
+        .order("date", { ascending: false });
+
+      if (!transactions) {
+        setLoading(false);
+        return;
+      }
+
+      // Pre-process transactions once to avoid multiple loops
+      const processedTransactions = transactions.map(t => ({
+        ...t,
+        category: t.categories?.name || 'Uncategorized'
+      }));
+
+      // Calculate all stats at once in a single pass
+      let totalIncome = 0;
+      let totalExpense = 0;
+      
+      processedTransactions.forEach(t => {
+        if (t.type === 'income') {
+          totalIncome += t.amount;
+        } else {
+          totalExpense += t.amount;
+        }
+      });
+
+      // Create the new stats object
+      const newStats = {
+        totalIncome,
+        totalExpense,
+        balance: totalIncome - totalExpense,
+        recentTransactions: processedTransactions.slice(0, 5),
+        monthlyData: getMonthlyData(processedTransactions),
+        categoryData: getCategoryData(processedTransactions),
+        topCategories: getTopCategories(processedTransactions),
+      };
+
+      // Save the fetched data to localStorage for offline use
+      saveToLocalStorage(STORAGE_KEYS.TRANSACTIONS, newStats, 60); // Cache for 60 minutes
+      saveToLocalStorage(STORAGE_KEYS.LAST_SYNC, Date.now());
+      setLastSynced(new Date().toLocaleString());
+      
+      // Batch state updates to prevent multiple renders
+      setStats(newStats);
+      setIsOffline(false);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setIsOffline(!isOnline());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // Generate monthly data for the last 6 months
-  const getMonthlyData = (transactions: any[]) => {
-    const months = [];
-    const today = new Date();
+  // Add passive event listeners for scroll and touch events
+  useEffect(() => {
+    const handleTouchStart = () => {
+      // Touch start handler for pull-to-refresh
+    };
     
-    for (let i = 5; i >= 0; i--) {
-      const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthStr = month.toLocaleString('default', { month: 'short' });
-      
-      const monthTransactions = transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return tDate.getMonth() === month.getMonth() && 
-               tDate.getFullYear() === month.getFullYear();
-      });
-      
-      const income = monthTransactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const expense = monthTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      months.push({
-        name: monthStr,
-        income,
-        expense
-      });
-    }
+    const handleTouchMove = () => {
+      // Touch move handler for mobile
+    };
     
-    return months;
-  };
-
-  // Generate category data for pie chart
-  const getCategoryData = (transactions: any[]) => {
-    const categories: Record<string, number> = {};
-    const colors = [
-      "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
-      "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5"
-    ];
+    const handleTouchEnd = () => {
+      // Touch end handler
+    };
     
-    // Only consider expenses for the category chart
-    const expenseTransactions = transactions.filter(t => t.type === 'expense');
+    const handleScroll = () => {
+      // Scroll handler for sticky headers
+    };
     
-    // Skip if no expense transactions
-    if (expenseTransactions.length === 0) {
-      return [];
-    }
+    const options = { passive: true };
+    document.addEventListener('touchstart', handleTouchStart, options);
+    document.addEventListener('touchmove', handleTouchMove, options);
+    document.addEventListener('touchend', handleTouchEnd, options);
+    document.addEventListener('scroll', handleScroll, options);
     
-    expenseTransactions.forEach(t => {
-      // Use a default name if category is undefined
-      const categoryName = t.category || 'Uncategorized';
-      
-      if (categories[categoryName]) {
-        categories[categoryName] += t.amount;
-      } else {
-        categories[categoryName] = t.amount;
-      }
-    });
-    
-    // If we only have one category "Uncategorized", and we have actual transactions,
-    // we need to check if there's a category_id that we can use to get a real name
-    if (Object.keys(categories).length === 1 && categories['Uncategorized'] > 0) {
-      const sampleTransaction = expenseTransactions.find(t => t.category_id);
-      if (sampleTransaction && sampleTransaction.categories?.name) {
-        // We found a real category name
-        delete categories['Uncategorized'];
-        categories[sampleTransaction.categories.name] = sampleTransaction.amount;
-      }
-    }
-    
-    return Object.keys(categories).map((category, index) => ({
-      name: category,
-      value: categories[category],
-      color: colors[index % colors.length]
-    }));
-  };
-
-  // Generate top categories by usage and spending
-  const getTopCategories = (transactions: any[]) => {
-    const categories: Record<string, { count: number; total: number }> = {};
-    const colors = [
-      "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
-      "#FF9F40", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5"
-    ];
-    
-    // Only consider expenses for the category analysis
-    const expenseTransactions = transactions.filter(t => t.type === 'expense');
-    
-    if (expenseTransactions.length === 0) {
-      return [];
-    }
-    
-    expenseTransactions.forEach(t => {
-      const categoryName = t.category || 'Uncategorized';
-      
-      if (categories[categoryName]) {
-        categories[categoryName].count += 1;
-        categories[categoryName].total += t.amount;
-      } else {
-        categories[categoryName] = { count: 1, total: t.amount };
-      }
-    });
-    
-    return Object.keys(categories)
-      .map((name, index) => ({
-        name,
-        count: categories[name].count,
-        total: categories[name].total,
-        color: colors[index % colors.length]
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5); // Get top 5 categories
-  };
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -241,25 +474,53 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Welcome back! Here's an overview of your finances.</p>
+    <div className="container mx-auto px-4 py-6 md:p-6 lg:p-8 max-w-screen-xl" role="main" aria-label="Dashboard">
+      {/* Mobile-optimized header with responsive spacing */}
+      <header className="mb-4 md:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold md:text-3xl" tabIndex={0}>Dashboard</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1">
+          <p className="text-sm md:text-base text-muted-foreground" tabIndex={0}>Welcome back! Here's an overview of your finances.</p>
+          
+          {/* Offline status indicator */}
+          <div className="mt-2 sm:mt-0">
+            {isOffline ? (
+              <div className="flex items-center text-amber-500 text-sm" role="status" aria-live="polite">
+                <span className="h-2 w-2 rounded-full bg-amber-500 mr-2"></span>
+                Offline Mode
+              </div>
+            ) : (
+              <div className="flex items-center text-green-500 text-sm">
+                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                Online
+                {lastSynced && <span className="ml-2 text-muted-foreground text-xs hidden sm:inline">Last synced: {lastSynced}</span>}
+              </div>
+            )}
+            {isOffline && 
+              <button 
+                onClick={syncData} 
+                className="text-blue-500 text-xs mt-1 hover:underline"
+                aria-label="Sync data when online"
+              >
+                Sync when online
+              </button>
+            }
+          </div>
+        </div>
       </header>
       
-      {/* Stats Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+      {/* Stats Cards - Responsive grid with better spacing on small screens */}
+      <div className="mb-6 md:mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" role="region" aria-label="Financial Summary">
+        <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm" tabIndex={0} aria-label="Total Income Summary">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
               <line x1="12" y1="1" x2="12" y2="23"></line>
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
             Total Income
           </div>
-          <div className="mt-3 text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
-          <div className="mt-1 flex items-center text-sm text-green-600">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4">
+          <div className="mt-2 md:mt-3 text-xl md:text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
+          <div className="mt-1 flex items-center text-xs sm:text-sm text-green-600">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4" aria-hidden="true">
               <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
               <polyline points="16 7 22 7 22 13"></polyline>
             </svg>
@@ -267,16 +528,16 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm" tabIndex={0} aria-label="Total Expenses Summary">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
               <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
             </svg>
             Total Expenses
           </div>
-          <div className="mt-3 text-2xl font-bold">{formatCurrency(stats.totalExpense)}</div>
-          <div className="mt-1 flex items-center text-sm text-red-600">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4">
+          <div className="mt-2 md:mt-3 text-xl md:text-2xl font-bold">{formatCurrency(stats.totalExpense)}</div>
+          <div className="mt-1 flex items-center text-xs sm:text-sm text-red-600">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4" aria-hidden="true">
               <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline>
               <polyline points="16 17 22 17 22 11"></polyline>
             </svg>
@@ -284,17 +545,17 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <div className="rounded-xl border bg-card p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm sm:col-span-2 lg:col-span-1" tabIndex={0} aria-label="Current Balance Summary">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
             Current Balance
           </div>
-          <div className={`mt-3 text-2xl font-bold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(stats.balance)}</div>
-          <div className="mt-1 flex items-center text-sm text-muted-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4">
+          <div className={`mt-2 md:mt-3 text-xl md:text-2xl font-bold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`} aria-live="polite">{formatCurrency(stats.balance)}</div>
+          <div className="mt-1 flex items-center text-xs sm:text-sm text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 h-4 w-4" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
@@ -303,156 +564,116 @@ export default function DashboardPage() {
         </div>
       </div>
       
-      {/* Charts */}
-      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-medium">Income vs. Expenses</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={stats.monthlyData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#9ca3af' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#9ca3af' }} 
-                  tickFormatter={(value) => value === 0 ? '0' : value >= 1000 ? `${value/1000}k` : value.toString()}
-                />
-                <Tooltip 
-                  formatter={(value) => formatCurrency(value as number)} 
-                  contentStyle={{ backgroundColor: '#1e1e2d', borderColor: '#2d2d3d' }} 
-                />
-                <Legend wrapperStyle={{ paddingTop: 10 }} />
-                <Line
-                  type="monotone"
-                  dataKey="income"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  activeDot={{ r: 8 }}
-                  dot={{ r: 4 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="expense" 
-                  stroke="#ef4444"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+      {/* Charts - More responsive for mobile */}
+      <div className="mb-6 md:mb-8 grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2" role="region" aria-label="Financial Charts">
+        <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm">
+          <h2 className="mb-2 md:mb-4 text-base md:text-lg font-medium" id="income-expense-chart-title" tabIndex={0}>Income vs. Expenses</h2>
+          <div aria-labelledby="income-expense-chart-title" className="h-64 md:h-80">
+            <IncomeExpenseChart monthlyData={stats.monthlyData} />
           </div>
         </div>
         
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-medium">Expense Categories</h2>
-          {stats.categoryData.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => percent < 0.05 ? null : `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    innerRadius={40}
-                    fill="#8884d8"
-                    dataKey="value"
-                    paddingAngle={2}
-                  >
-                    {stats.categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => formatCurrency(value as number)} 
-                    contentStyle={{ backgroundColor: '#1e1e2d', borderColor: '#2d2d3d' }}
-                  />
-                  <Legend 
-                    layout="vertical"
-                    align="right"
-                    verticalAlign="middle"
-                    wrapperStyle={{ paddingLeft: 20 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex h-80 items-center justify-center text-muted-foreground">
-              No expense data available
-            </div>
-          )}
+        <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm">
+          <h2 className="mb-2 md:mb-4 text-base md:text-lg font-medium" id="expense-categories-chart-title" tabIndex={0}>Expense Categories</h2>
+          <div aria-labelledby="expense-categories-chart-title" className="h-64 md:h-80">
+            <ExpenseCategoryChart categoryData={stats.categoryData} />
+          </div>
         </div>
       </div>
       
-      {/* Recent Transactions */}
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium">Recent Transactions</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/transactions">View All</Link>
+      {/* Recent Transactions with Responsive Table/List */}
+      <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm" role="region" aria-labelledby="recent-transactions-title">
+        <div className="flex items-center justify-between mb-3 md:mb-6">
+          <h2 className="text-base md:text-lg font-medium" id="recent-transactions-title" tabIndex={0}>Recent Transactions</h2>
+          <Button asChild variant="outline" size="sm" className="text-xs md:text-sm">
+            <Link href="/dashboard/transactions" aria-label="View all transactions">View All</Link>
           </Button>
         </div>
         {stats.recentTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b text-left text-sm font-medium text-muted-foreground">
-                  <th className="pb-3 pr-4">Date</th>
-                  <th className="pb-3 pr-4">Category</th>
-                  <th className="pb-3 pr-4">Amount</th>
-                  <th className="pb-3">Type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b text-sm">
-                    <td className="py-3 pr-4">{formatDate(new Date(transaction.date))}</td>
-                    <td className="py-3 pr-4 capitalize">{transaction.category}</td>
-                    <td className="py-3 pr-4 font-medium">{formatCurrency(transaction.amount)}</td>
-                    <td className="py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          transaction.type === "income"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {transaction.type}
-                      </span>
-                    </td>
+          <div>
+            {/* Hide table on small screens, show cards instead */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full border-collapse" aria-labelledby="recent-transactions-title">
+                <thead>
+                  <tr className="border-b text-left text-sm font-medium text-muted-foreground">
+                    <th className="pb-3 pr-4" scope="col">Date</th>
+                    <th className="pb-3 pr-4" scope="col">Category</th>
+                    <th className="pb-3 pr-4" scope="col">Amount</th>
+                    <th className="pb-3" scope="col">Type</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {stats.recentTransactions.map((transaction) => (
+                    <tr key={transaction.id} className="border-b text-sm">
+                      <td className="py-3 pr-4">{formatDate(new Date(transaction.date))}</td>
+                      <td className="py-3 pr-4 capitalize">{transaction.category}</td>
+                      <td className="py-3 pr-4 font-medium">{formatCurrency(transaction.amount)}</td>
+                      <td className="py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            transaction.type === "income"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {transaction.type}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view - show on small screens only */}
+            <div className="sm:hidden space-y-3">
+              {stats.recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="border rounded-lg p-3 text-sm">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-muted-foreground text-xs">{formatDate(new Date(transaction.date))}</span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        transaction.type === "income"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {transaction.type}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="capitalize">{transaction.category}</span>
+                    <span className={`font-medium ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                      {formatCurrency(transaction.amount)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="flex h-24 items-center justify-center text-muted-foreground">
+          <div className="flex h-24 items-center justify-center text-muted-foreground" tabIndex={0} aria-live="polite">
             No transactions found
           </div>
         )}
       </div>
 
-      {/* Category Insights Section */}
-      <div className="mt-6">
-        <h2 className="mb-4 text-xl font-semibold">Category Insights</h2>
+      {/* Category Insights Section - More responsive */}
+      <div className="mt-4 md:mt-6" role="region" aria-labelledby="category-insights-title">
+        <h2 className="mb-3 md:mb-4 text-lg md:text-xl font-semibold" id="category-insights-title" tabIndex={0}>Category Insights</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Top spending categories */}
-          <div className="overflow-hidden rounded-lg border bg-card p-4">
-            <h3 className="mb-3 text-lg font-medium">Top Spending Categories</h3>
+          <div className="overflow-hidden rounded-lg border bg-card p-4" aria-labelledby="top-spending-title">
+            <h3 className="mb-3 text-lg font-medium" id="top-spending-title" tabIndex={0}>Top Spending Categories</h3>
             <div className="space-y-4">
               {stats.topCategories.length > 0 ? (
                 stats.topCategories.map((category) => (
-                  <div key={category.name} className="flex items-center justify-between">
+                  <div key={category.name} className="flex items-center justify-between" tabIndex={0}>
                     <div className="flex items-center space-x-2">
                       <div 
                         className="h-3 w-3 rounded-full" 
                         style={{ backgroundColor: category.color }}
+                        aria-hidden="true"
                       />
                       <span className="text-sm">{category.name}</span>
                     </div>
@@ -467,7 +688,7 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center text-muted-foreground">
+                <div className="text-center text-muted-foreground" tabIndex={0} aria-live="polite">
                   No expense data available
                 </div>
               )}
@@ -475,19 +696,20 @@ export default function DashboardPage() {
           </div>
           
           {/* Most used categories */}
-          <div className="overflow-hidden rounded-lg border bg-card p-4">
-            <h3 className="mb-3 text-lg font-medium">Most Used Categories</h3>
+          <div className="overflow-hidden rounded-lg border bg-card p-4" aria-labelledby="most-used-title">
+            <h3 className="mb-3 text-lg font-medium" id="most-used-title" tabIndex={0}>Most Used Categories</h3>
             <div className="space-y-4">
               {stats.topCategories.length > 0 ? (
                 [...stats.topCategories]
                   .sort((a, b) => b.count - a.count)
                   .slice(0, 5)
                   .map((category) => (
-                    <div key={category.name} className="flex items-center justify-between">
+                    <div key={category.name} className="flex items-center justify-between" tabIndex={0}>
                       <div className="flex items-center space-x-2">
                         <div 
                           className="h-3 w-3 rounded-full" 
                           style={{ backgroundColor: category.color }}
+                          aria-hidden="true"
                         />
                         <span className="text-sm">{category.name}</span>
                       </div>
@@ -502,7 +724,7 @@ export default function DashboardPage() {
                     </div>
                   ))
               ) : (
-                <div className="text-center text-muted-foreground">
+                <div className="text-center text-muted-foreground" tabIndex={0} aria-live="polite">
                   No transaction data available
                 </div>
               )}
@@ -510,6 +732,16 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Offline warning banner - Make it more visible on mobile */}
+      {isOffline && (
+        <div className="mt-4 md:mt-6 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 md:p-4 sticky bottom-2 md:static" role="alert">
+          <h2 className="font-medium text-amber-800 dark:text-amber-400 text-sm md:text-base">Offline Mode Active</h2>
+          <p className="mt-1 text-xs md:text-sm text-amber-700 dark:text-amber-300">
+            You're currently viewing cached data. Some features may be limited until you're back online.
+          </p>
+        </div>
+      )}
     </div>
   );
 } 

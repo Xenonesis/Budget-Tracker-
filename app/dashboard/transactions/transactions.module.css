@@ -1,3 +1,5 @@
+/* Clean CSS module file */
+
 .virtualizedRow {
   border-bottom: 1px solid var(--border-color);
 }
@@ -88,4 +90,11 @@
     background-color: rgba(239, 68, 68, 0.2);
     color: rgb(252, 165, 165);
   }
+}
+
+/* Style for custom category form */
+.customCategoryForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 } 

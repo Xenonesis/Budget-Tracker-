@@ -125,25 +125,28 @@ export interface Database {
       profiles: {
         Row: {
           id: string
-          email: string
+          email: string | null
           name: string | null
-          currency: string
+          currency: string | null
+          timezone: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
-          email: string
+          email?: string | null
           name?: string | null
-          currency?: string
+          currency?: string | null
+          timezone?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          email?: string
+          email?: string | null
           name?: string | null
-          currency?: string
+          currency?: string | null
+          timezone?: string | null
           created_at?: string
           updated_at?: string
         }

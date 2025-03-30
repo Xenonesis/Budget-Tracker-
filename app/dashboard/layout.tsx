@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { ensureUserProfile } from "@/lib/utils";
@@ -15,6 +15,33 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
 }
+
+// Memoized sidebar navigation item to prevent unnecessary renders
+function NavItemComponent({ item, pathname, onClick }: { 
+  item: NavItem; 
+  pathname: string;
+  onClick?: () => void;
+}) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        className={`flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors ${
+          pathname === item.href
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        }`}
+        onClick={onClick}
+      >
+        {item.icon}
+        {item.title}
+      </Link>
+    </li>
+  );
+}
+
+const NavItem = memo(NavItemComponent);
+NavItem.displayName = 'NavItem';
 
 export default function DashboardLayout({
   children,
@@ -35,51 +62,8 @@ export default function DashboardLayout({
     setInitialized
   } = useUserPreferences();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        router.push("/auth/login");
-        return;
-      }
-      setUser(data.user);
-      
-      // Set the user ID in the store
-      setUserId(data.user.id);
-      
-      // Extract preferred currency from user metadata if it exists
-      const preferredCurrency = data.user.user_metadata?.preferred_currency;
-      if (preferredCurrency) {
-        // Set currency directly to avoid timing issues
-        setCurrency(preferredCurrency);
-        // Store in localStorage for redundancy
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('budget-currency', preferredCurrency);
-        }
-        console.log('Currency loaded from auth metadata:', preferredCurrency);
-      }
-      
-      // Ensure profile exists using the utility function
-      await ensureUserProfile(
-        data.user.id, 
-        data.user.email, 
-        data.user.user_metadata?.name,
-        preferredCurrency
-      );
-      
-      // Sync user preferences if not already initialized
-      if (!initialized || userId !== data.user.id) {
-        await syncWithDatabase();
-        setInitialized(true);
-      }
-      
-      setLoading(false);
-    };
-
-    getUser();
-  }, [router, setUserId, setCurrency, syncWithDatabase, initialized, userId, setInitialized]);
-
-  const handleSignOut = async () => {
+  // Memoize the sign out handler to prevent recreating it on each render
+  const handleSignOut = useCallback(async () => {
     // Clear user preferences when signing out
     setUserId(null);
     setUsername('');
@@ -88,7 +72,88 @@ export default function DashboardLayout({
     await supabase.auth.signOut();
     router.push("/auth/login");
     router.refresh();
-  };
+  }, [router, setUserId, setUsername, setCurrency]);
+
+  // Memoize the sidebar toggle handler
+  const toggleSidebar = useCallback(() => {
+    document.documentElement.classList.toggle("sidebar-open");
+  }, []);
+
+  // Memoize the sidebar close handler 
+  const closeSidebar = useCallback(() => {
+    document.documentElement.classList.remove("sidebar-open");
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const getUser = async () => {
+      try {
+        setLoading(true);
+        const { data } = await supabase.auth.getUser();
+        
+        if (!isMounted) return;
+        
+        if (!data.user) {
+          router.push("/auth/login");
+          return;
+        }
+        
+        setUser(data.user);
+        
+        // Set the user ID in the store
+        setUserId(data.user.id);
+        
+        // Extract preferred currency from user metadata if it exists
+        const preferredCurrency = data.user.user_metadata?.preferred_currency;
+        if (preferredCurrency) {
+          // Set currency directly to avoid timing issues
+          setCurrency(preferredCurrency);
+          // Store in localStorage for redundancy
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('budget-currency', preferredCurrency);
+          }
+        }
+        
+        // Ensure profile exists using the utility function
+        await ensureUserProfile(
+          data.user.id, 
+          data.user.email, 
+          data.user.user_metadata?.name,
+          preferredCurrency
+        );
+        
+        // Sync user preferences if not already initialized
+        if (!initialized || userId !== data.user.id) {
+          await syncWithDatabase();
+          setInitialized(true);
+        }
+      } catch (error) {
+        console.error("Error getting user:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!session && isMounted) {
+          router.push("/auth/login");
+        }
+      }
+    );
+
+    getUser();
+
+    // Clean up function
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [router, setUserId, setCurrency, syncWithDatabase, initialized, userId, setInitialized]);
 
   if (loading) {
     return (
@@ -97,6 +162,13 @@ export default function DashboardLayout({
       </div>
     );
   }
+
+  // Mobile sidebar toggle handler with window width check
+  const handleSidebarToggleForMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      closeSidebar();
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -117,10 +189,7 @@ export default function DashboardLayout({
           <ThemeToggle iconOnly />
           <button
             className="inline-flex h-12 w-12 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            onClick={() => {
-              document.documentElement.classList.toggle("sidebar-open");
-              console.log("Toggled sidebar-open class:", document.documentElement.classList.contains("sidebar-open"));
-            }}
+            onClick={toggleSidebar}
             aria-label="Toggle menu"
           >
             <svg
@@ -159,7 +228,7 @@ export default function DashboardLayout({
           {/* Close button for mobile */}
           <button
             className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 md:hidden"
-            onClick={() => document.documentElement.classList.remove("sidebar-open")}
+            onClick={closeSidebar}
             aria-label="Close menu"
           >
             <svg
@@ -181,25 +250,12 @@ export default function DashboardLayout({
         <nav className="flex-1 overflow-auto py-6 px-4">
           <ul className="space-y-2">
             {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors ${
-                    pathname === item.href
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                  onClick={() => {
-                    // Close sidebar on mobile when clicking a link
-                    if (window.innerWidth < 768) {
-                      document.documentElement.classList.remove("sidebar-open");
-                    }
-                  }}
-                >
-                  {item.icon}
-                  {item.title}
-                </Link>
-              </li>
+              <NavItem 
+                key={item.href} 
+                item={item} 
+                pathname={pathname} 
+                onClick={handleSidebarToggleForMobile}
+              />
             ))}
           </ul>
         </nav>
@@ -248,10 +304,7 @@ export default function DashboardLayout({
       {/* Main content overlay for mobile */}
       <div 
         className="fixed inset-0 z-30 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden sidebar-open:opacity-100 sidebar-open:pointer-events-auto"
-        onClick={() => {
-          document.documentElement.classList.remove("sidebar-open");
-          console.log("Removed sidebar-open class");
-        }}
+        onClick={closeSidebar}
       ></div>
       
       {/* Bottom Mobile Navigation - replaced with BottomNavigation component */}

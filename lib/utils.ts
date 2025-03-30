@@ -234,4 +234,173 @@ export function formatDateWithTimezone(dateString: string, timezone?: string): s
     console.error("Error formatting date with timezone:", error);
     return dateString; // Return original string as fallback
   }
-} 
+}
+
+// Local Storage Utilities for Data Persistence
+const STORAGE_KEYS = {
+  TRANSACTIONS: 'budget_tracker_transactions',
+  USER_PREFERENCES: 'budget_tracker_preferences',
+  CATEGORIES: 'budget_tracker_categories',
+  LAST_SYNC: 'budget_tracker_last_sync',
+  OFFLINE_CHANGES: 'budget_tracker_offline_changes'
+};
+
+/**
+ * Save data to localStorage with TTL (time-to-live)
+ */
+export function saveToLocalStorage<T>(key: string, data: T, ttlInMinutes: number = 60): void {
+  try {
+    const item = {
+      data,
+      expiry: ttlInMinutes ? Date.now() + ttlInMinutes * 60 * 1000 : null
+    };
+    localStorage.setItem(key, JSON.stringify(item));
+  } catch (error) {
+    console.error('Error saving to localStorage:', error);
+  }
+}
+
+/**
+ * Get data from localStorage with expiry check
+ */
+export function getFromLocalStorage<T>(key: string): T | null {
+  try {
+    const itemStr = localStorage.getItem(key);
+    if (!itemStr) return null;
+
+    const item = JSON.parse(itemStr);
+    
+    // Check if the item has expired
+    if (item.expiry && Date.now() > item.expiry) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    
+    return item.data as T;
+  } catch (error) {
+    console.error('Error retrieving from localStorage:', error);
+    return null;
+  }
+}
+
+/**
+ * Queue changes when offline to sync later
+ */
+export function queueOfflineChange(change: { 
+  type: 'create' | 'update' | 'delete', 
+  entity: 'transaction' | 'category' | 'profile', 
+  data: any 
+}): void {
+  try {
+    const offlineChanges = getFromLocalStorage<any[]>(STORAGE_KEYS.OFFLINE_CHANGES) || [];
+    offlineChanges.push({
+      ...change,
+      timestamp: Date.now(),
+      id: change.data.id || crypto.randomUUID()
+    });
+    saveToLocalStorage(STORAGE_KEYS.OFFLINE_CHANGES, offlineChanges);
+  } catch (error) {
+    console.error('Error queuing offline change:', error);
+  }
+}
+
+/**
+ * Check if the user is online
+ */
+export function isOnline(): boolean {
+  return navigator.onLine;
+}
+
+/**
+ * Sync offline changes with the database when back online
+ */
+export async function syncOfflineChanges(supabaseClient: any): Promise<{ 
+  success: boolean, 
+  syncedCount: number, 
+  errors: any[] 
+}> {
+  if (!isOnline()) {
+    return { success: false, syncedCount: 0, errors: [{ message: 'Currently offline' }] };
+  }
+  
+  const offlineChanges = getFromLocalStorage<any[]>(STORAGE_KEYS.OFFLINE_CHANGES) || [];
+  
+  if (offlineChanges.length === 0) {
+    return { success: true, syncedCount: 0, errors: [] };
+  }
+  
+  const results = {
+    success: true,
+    syncedCount: 0,
+    errors: [] as any[]
+  };
+  
+  // Sort by timestamp to maintain order of operations
+  const sortedChanges = [...offlineChanges].sort((a, b) => a.timestamp - b.timestamp);
+  const remainingChanges = [];
+  
+  for (const change of sortedChanges) {
+    try {
+      let result;
+      
+      switch (change.type) {
+        case 'create':
+          if (change.entity === 'transaction') {
+            result = await supabaseClient.from('transactions').insert(change.data);
+          } else if (change.entity === 'category') {
+            result = await supabaseClient.from('categories').insert(change.data);
+          }
+          break;
+          
+        case 'update':
+          if (change.entity === 'transaction') {
+            result = await supabaseClient.from('transactions').update(change.data).eq('id', change.data.id);
+          } else if (change.entity === 'category') {
+            result = await supabaseClient.from('categories').update(change.data).eq('id', change.data.id);
+          }
+          break;
+          
+        case 'delete':
+          if (change.entity === 'transaction') {
+            result = await supabaseClient.from('transactions').delete().eq('id', change.data.id);
+          } else if (change.entity === 'category') {
+            result = await supabaseClient.from('categories').delete().eq('id', change.data.id);
+          }
+          break;
+      }
+      
+      if (result && !result.error) {
+        results.syncedCount++;
+      } else if (result && result.error) {
+        results.errors.push({
+          change,
+          error: result.error
+        });
+        remainingChanges.push(change);
+        results.success = false;
+      }
+    } catch (error) {
+      results.errors.push({
+        change,
+        error
+      });
+      remainingChanges.push(change);
+      results.success = false;
+    }
+  }
+  
+  // Save any changes that failed back to the queue
+  if (remainingChanges.length > 0) {
+    saveToLocalStorage(STORAGE_KEYS.OFFLINE_CHANGES, remainingChanges);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.OFFLINE_CHANGES);
+  }
+  
+  // Update the last sync time
+  saveToLocalStorage(STORAGE_KEYS.LAST_SYNC, Date.now());
+  
+  return results;
+}
+
+// Export the storage keys for use in components
+export { STORAGE_KEYS }; 

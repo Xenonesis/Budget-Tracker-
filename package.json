@@ -24,7 +24,7 @@
     "critters": "^0.0.23",
     "date-fns": "^2.30.0",
     "exceljs": "^4.4.0",
-    "framer-motion": "^11.1.5",
+    "framer-motion": "^11.18.2",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.358.0",
