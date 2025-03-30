@@ -2,6 +2,20 @@
 
 A fully responsive budget tracking application built with Next.js, React, ShadCN UI, and Supabase.
 
+## Important: Environment Setup Required
+
+**Before building or deploying this project:**
+
+1. Create a `.env.local` file in the root directory with your Supabase credentials:
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+2. You can use the provided `.env.template` file as a reference.
+
+3. These environment variables are required for the application to function properly. Without them, the build will fail.
+
 ![Budget Tracker App](https://i.imgur.com/placeholder-image.png)
 
 ## Features
