@@ -9,6 +9,7 @@ export interface UserPreferences {
   currency: string; 
   theme: 'light' | 'dark' | 'system';
   initialized: boolean;
+  timezone: string;
   setUserId: (userId: string | null) => void;
   setUsername: (username: string) => void;
   setCurrency: (currency: string) => void;
@@ -16,6 +17,7 @@ export interface UserPreferences {
   syncWithDatabase: () => Promise<void>;
   setInitialized: (initialized: boolean) => void;
   resetPreferences: () => void;
+  setTimezone: (timezone: string) => void;
 }
 
 // Safe way to access localStorage that works in both client and server contexts
@@ -41,6 +43,7 @@ export const useUserPreferences = create<UserPreferences>()(
       currency: getDefaultCurrency(),
       theme: getDefaultTheme(),
       initialized: false,
+      timezone: 'UTC',
       setUserId: (userId: string | null) => set({ userId }),
       setUsername: (username: string) => set({ username }),
       setCurrency: (currency: string) => {
@@ -51,12 +54,14 @@ export const useUserPreferences = create<UserPreferences>()(
       },
       setTheme: (theme: 'light' | 'dark' | 'system') => set({ theme }),
       setInitialized: (initialized: boolean) => set({ initialized }),
+      setTimezone: (timezone: string) => set({ timezone }),
       resetPreferences: () => set({
         userId: null,
         username: '',
         currency: 'USD',
         theme: 'system',
-        initialized: false
+        initialized: false,
+        timezone: 'UTC'
       }),
       syncWithDatabase: async () => {
         const { userId } = get();
@@ -97,11 +102,14 @@ export const useUserPreferences = create<UserPreferences>()(
           if (data) {
             // Default to USD if no currency is set
             const defaultCurrency = data.currency || 'USD';
+            // Default to UTC if no timezone is set
+            const defaultTimezone = data.timezone || 'UTC';
             
             // Update local store with database values
             set({
               username: data.name || get().username,
               currency: defaultCurrency,
+              timezone: defaultTimezone,
               initialized: true
             });
 
@@ -115,11 +123,12 @@ export const useUserPreferences = create<UserPreferences>()(
             await supabase.auth.updateUser({
               data: {
                 name: data.name || get().username,
-                preferred_currency: defaultCurrency
+                preferred_currency: defaultCurrency,
+                preferred_timezone: defaultTimezone
               }
             });
             
-            console.log('Currency synced from database:', defaultCurrency);
+            console.log('User preferences synced from database');
           }
         } catch (error) {
           console.error('Error syncing user preferences with database:', error);
@@ -151,7 +160,8 @@ export const useUserPreferences = create<UserPreferences>()(
         username: state.username, 
         currency: state.currency,
         theme: state.theme,
-        initialized: state.initialized
+        initialized: state.initialized,
+        timezone: state.timezone
       }),
     }
   )
