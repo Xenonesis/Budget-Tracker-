@@ -2,7 +2,32 @@
 
 A fully responsive budget tracking application built with Next.js, React, ShadCN UI, and Supabase.
 
-## Version 4.0 - Latest Updates
+## Version 5.0 - Latest Updates
+
+**Released: March 30, 2024**
+
+### New Features
+- Added notification preferences for budget alerts and transaction confirmations
+- Implemented timezone selection in user profile settings
+- Enhanced transaction categories with custom user-defined categories
+- Added phone number verification for account security
+- Improved recurring transactions with customizable schedules and more options
+
+### User Experience Improvements
+- Redesigned dashboard with more intuitive navigation
+- Optimized mobile experience with better touch controls
+- Added keyboard shortcuts for common actions
+- Improved accessibility throughout the application
+- Enhanced error handling with more informative messages
+
+### Technical Improvements
+- Updated Next.js to version 14.2.26
+- Improved database performance with optimized queries
+- Enhanced security with additional validation checks
+- Reduced bundle size for faster loading times
+- Added comprehensive error logging
+
+## Version 4.0
 
 **Released: March 30, 2023**
 
