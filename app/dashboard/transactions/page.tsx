@@ -806,6 +806,14 @@ export default function TransactionsPage() {
 
       const parsedAmount = parseFloat(formData.amount);
       
+      // Ensure transaction type is validated
+      if (formData.type !== 'income' && formData.type !== 'expense') {
+        console.error("Invalid transaction type:", formData.type);
+        toast.error("Invalid transaction type. Please select income or expense.");
+        setFormLoading(false);
+        return;
+      }
+      
       // Log the transaction data before submission for debugging
       console.log("Submitting transaction:", {
         type: formData.type,
@@ -815,10 +823,10 @@ export default function TransactionsPage() {
         date: formData.date
       });
       
-      // Create a new transaction object
+      // Create a new transaction object - explicitly set type to ensure it matches expected values
       const newTransaction = {
         user_id: userData.user.id,
-        type: formData.type,
+        type: formData.type === 'income' ? 'income' : 'expense',
         category_id: formData.category_id,
         amount: parsedAmount,
         description: formData.description,
@@ -831,7 +839,7 @@ export default function TransactionsPage() {
           const { error } = await supabase
             .from("recurring_transactions")
             .update({
-              type: formData.type,
+              type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
@@ -856,7 +864,7 @@ export default function TransactionsPage() {
             .from("recurring_transactions")
             .insert({
               user_id: userData.user.id,
-              type: formData.type,
+              type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
@@ -879,7 +887,7 @@ export default function TransactionsPage() {
             .from("transactions")
             .insert({
               user_id: userData.user.id,
-              type: formData.type,
+              type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
@@ -903,7 +911,7 @@ export default function TransactionsPage() {
           const { error } = await supabase
             .from("transactions")
             .update({
-              type: formData.type,
+              type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
@@ -920,12 +928,14 @@ export default function TransactionsPage() {
           toast.success("Transaction updated!");
         } else {
           // Insert new transaction
-          console.log("Inserting new transaction of type:", formData.type);
+          console.log("Inserting new transaction of type:", newTransaction.type);
+          
+          // Try with direct insert first
           const { data, error } = await supabase
             .from("transactions")
             .insert([{
               user_id: userData.user.id,
-              type: formData.type,
+              type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description,
@@ -935,13 +945,42 @@ export default function TransactionsPage() {
 
           if (error) {
             console.error("Error inserting transaction:", error);
-            toast.error(`Failed to add transaction: ${error.message}`);
-            setFormLoading(false);
-            return;
+            
+            // If there was an error, try with a different approach for enum handling
+            if (error.message.includes('type')) {
+              console.log("Trying alternative approach for transaction type");
+              
+              const { data: altData, error: altError } = await supabase
+                .from("transactions")
+                .insert([{
+                  user_id: userData.user.id,
+                  // Try to use string literal to match enum exactly
+                  type: newTransaction.type === 'income' ? 'income' : 'expense',
+                  category_id: formData.category_id,
+                  amount: parsedAmount,
+                  description: formData.description,
+                  date: formData.date
+                }])
+                .select();
+                
+              if (altError) {
+                console.error("Alternative approach also failed:", altError);
+                toast.error(`Failed to add transaction: ${altError.message}`);
+                setFormLoading(false);
+                return;
+              }
+              
+              console.log("Transaction inserted successfully with alternative approach:", altData);
+              toast.success(`${newTransaction.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
+            } else {
+              toast.error(`Failed to add transaction: ${error.message}`);
+              setFormLoading(false);
+              return;
+            }
+          } else {
+            console.log("Transaction inserted successfully:", data);
+            toast.success(`${newTransaction.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
           }
-          
-          console.log("Transaction inserted successfully:", data);
-          toast.success(`${formData.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
         }
       }
 
