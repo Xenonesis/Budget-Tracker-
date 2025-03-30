@@ -11,12 +11,14 @@ A fully responsive budget tracking application built with Next.js, React, ShadCN
 - Added PDF, CSV, and Excel export functionality for transactions
 - Implemented scheduled exports with multiple frequency options
 - Improved transaction form with autosave and suggestions
+- **Added theme toggle functionality for easy switching between light, dark, and system themes**
 
 ### User Experience Improvements
 - Fixed dropdown duplication issues in custom category forms
 - Added virtual scrolling for better performance with large transaction lists
 - Improved timezone handling across all date operations
 - Enhanced mobile responsiveness throughout the application
+- **Added accessible theme toggles to all key pages (landing, dashboard, profile)**
 
 ### Bug Fixes
 - Resolved transaction creation failures with reliable insertion function
