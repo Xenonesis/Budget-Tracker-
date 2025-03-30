@@ -950,12 +950,15 @@ export default function TransactionsPage() {
           // Insert new transaction
           console.log("Inserting new transaction of type:", newTransaction.type);
           
+          // Force string type for income to ensure it's properly formatted
+          const transactionTypeValue = newTransaction.type === 'income' ? 'income' : 'expense';
+          
           // Try with direct insert first
           const { data, error } = await supabase
             .from("transactions")
             .insert([{
               user_id: userData.user.id,
-              type: newTransaction.type,  // Use validated type
+              type: transactionTypeValue,  // Use the forced string version
               category_id: formData.category_id,
               amount: parsedAmount,
               description: formData.description || '',
@@ -966,40 +969,60 @@ export default function TransactionsPage() {
           if (error) {
             console.error("Error inserting transaction:", error);
             
-            // If there was an error, try with a different approach for enum handling
-            if (error.message.includes('type')) {
-              console.log("Trying alternative approach for transaction type");
+            // If there was an error, try with a raw SQL approach to bypass type issues
+            try {
+              console.log("Trying direct SQL approach for transaction insertion");
               
-              const { data: altData, error: altError } = await supabase
-                .from("transactions")
-                .insert([{
-                  user_id: userData.user.id,
-                  // Try to use string literal to match enum exactly
-                  type: newTransaction.type === 'income' ? 'income' : 'expense',
-                  category_id: formData.category_id,
-                  amount: parsedAmount,
-                  description: formData.description || '',
-                  date: formData.date
-                }])
-                .select();
+              // Use raw SQL query to insert the transaction directly
+              const { data: rawData, error: rawError } = await supabase.rpc(
+                'insert_transaction',
+                {
+                  p_user_id: userData.user.id,
+                  p_type: transactionTypeValue,
+                  p_category_id: formData.category_id,
+                  p_amount: parsedAmount,
+                  p_description: formData.description || '',
+                  p_date: formData.date
+                }
+              );
+              
+              if (rawError) {
+                console.error("Raw SQL approach also failed:", rawError);
                 
-              if (altError) {
-                console.error("Alternative approach also failed:", altError);
-                toast.error(`Failed to add transaction: ${altError.message}`);
-                setFormLoading(false);
-                return;
+                // Final fallback - try with simpler version without select
+                const { error: fallbackError } = await supabase
+                  .from("transactions")
+                  .insert({
+                    user_id: userData.user.id,
+                    type: transactionTypeValue,
+                    category_id: formData.category_id,
+                    amount: parsedAmount,
+                    description: formData.description || '',
+                    date: formData.date
+                  });
+                
+                if (fallbackError) {
+                  console.error("Final fallback approach also failed:", fallbackError);
+                  toast.error(`Failed to add ${transactionTypeValue} transaction: ${fallbackError.message}`);
+                  setFormLoading(false);
+                  return;
+                }
+                
+                console.log("Transaction inserted successfully with fallback approach");
+                toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
+              } else {
+                console.log("Transaction inserted successfully with raw SQL approach");
+                toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
               }
-              
-              console.log("Transaction inserted successfully with alternative approach:", altData);
-              toast.success(`${newTransaction.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
-            } else {
+            } catch (sqlError) {
+              console.error("All approaches failed:", sqlError);
               toast.error(`Failed to add transaction: ${error.message}`);
               setFormLoading(false);
               return;
             }
           } else {
-            console.log("Transaction inserted successfully:", data);
-            toast.success(`${newTransaction.type === 'income' ? 'Income' : 'Expense'} transaction added!`);
+            console.log("Transaction inserted successfully with normal approach:", data);
+            toast.success(`${transactionTypeValue === 'income' ? 'Income' : 'Expense'} transaction added!`);
           }
         }
       }
