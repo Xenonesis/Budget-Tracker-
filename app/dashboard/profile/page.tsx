@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Moon, Sun, Laptop } from "lucide-react";
 
 export default function ProfilePage() {
   const userPreferences = useUserPreferences();
@@ -207,6 +209,47 @@ export default function ProfilePage() {
               <option value="Asia/Kolkata">India (IST)</option>
               <option value="Australia/Sydney">Sydney (AEST)</option>
             </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-3">
+              Theme Preference
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center p-4 border rounded-md bg-card">
+                <div className="mr-4">
+                  <ThemeToggle className="w-full" iconOnly={false} variant="outline" size="default" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Quick Toggle</p>
+                  <p className="text-xs text-muted-foreground">Switch between light, dark, or system theme</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-3 p-4 border rounded-md bg-card">
+                <h4 className="text-sm font-medium">Theme Preview</h4>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full bg-background border flex items-center justify-center">
+                      <Sun className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs mt-1">Light</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full bg-zinc-900 text-white flex items-center justify-center">
+                      <Moon className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs mt-1">Dark</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-zinc-100 to-zinc-900 flex items-center justify-center">
+                      <Laptop className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs mt-1">System</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="pt-4">

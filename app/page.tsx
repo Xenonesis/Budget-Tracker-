@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Home() {
   return (
@@ -18,6 +21,7 @@ export default function Home() {
           Budget Tracker
         </div>
         <div className="flex items-center gap-4">
+          <ThemeToggle iconOnly />
           <Button asChild variant="ghost" className="font-medium">
             <Link href="/auth/login">Log in</Link>
           </Button>
