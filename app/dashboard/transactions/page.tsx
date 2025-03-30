@@ -815,6 +815,13 @@ export default function TransactionsPage() {
         return;
       }
 
+      // If it's still "custom", that means they didn't click the "Add Category" button
+      if (formData.category_id === "custom") {
+        toast.error("Please create the custom category before saving the transaction.");
+        setFormLoading(false);
+        return;
+      }
+
       const parsedAmount = parseFloat(formData.amount);
       
       // Ensure transaction type is validated
@@ -830,8 +837,8 @@ export default function TransactionsPage() {
         type: formData.type,
         category_id: formData.category_id,
         amount: parsedAmount,
-        description: formData.description,
-        date: formData.date
+        description: formData.description || '',
+        date: formData.date,
       });
       
       // Create a new transaction object - explicitly set type to ensure it matches expected values
@@ -840,9 +847,11 @@ export default function TransactionsPage() {
         type: formData.type === 'income' ? 'income' : 'expense',
         category_id: formData.category_id,
         amount: parsedAmount,
-        description: formData.description,
+        description: formData.description || '',
         date: formData.date,
       };
+
+      console.log("Final transaction to be saved:", newTransaction);
 
       if (formData.is_recurring) {
         if (editingRecurring) {
@@ -853,7 +862,7 @@ export default function TransactionsPage() {
               type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
-              description: formData.description,
+              description: formData.description || '',
               start_date: formData.date,
               frequency: formData.recurring_frequency,
               end_date: formData.recurring_end_date || null,
@@ -878,7 +887,7 @@ export default function TransactionsPage() {
               type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
-              description: formData.description,
+              description: formData.description || '',
               frequency: formData.recurring_frequency,
               start_date: formData.date,
               end_date: formData.recurring_end_date || null,
@@ -901,7 +910,7 @@ export default function TransactionsPage() {
               type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
-              description: formData.description,
+              description: formData.description || '',
               date: formData.date,
               recurring_id: recurringData[0].id
             });
@@ -925,7 +934,7 @@ export default function TransactionsPage() {
               type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
-              description: formData.description,
+              description: formData.description || '',
               date: formData.date
             })
             .eq("id", editId);
@@ -949,7 +958,7 @@ export default function TransactionsPage() {
               type: newTransaction.type,  // Use validated type
               category_id: formData.category_id,
               amount: parsedAmount,
-              description: formData.description,
+              description: formData.description || '',
               date: formData.date
             }])
             .select();
@@ -969,7 +978,7 @@ export default function TransactionsPage() {
                   type: newTransaction.type === 'income' ? 'income' : 'expense',
                   category_id: formData.category_id,
                   amount: parsedAmount,
-                  description: formData.description,
+                  description: formData.description || '',
                   date: formData.date
                 }])
                 .select();
@@ -1667,25 +1676,22 @@ export default function TransactionsPage() {
         return;
       }
       
-      // Validate the category type
-      if (!['income', 'expense', 'both'].includes(newCategory.type)) {
-        console.error("Invalid category type:", newCategory.type);
-        toast.error("Invalid category type. Please select income, expense, or both.");
-        return;
-      }
+      // Force category type to match transaction type to ensure consistency
+      const categoryType = formData.type === 'income' ? 'income' : 'expense';
       
-      console.log("Creating new category:", {
+      console.log("Creating new category with FORCED type:", {
         name: newCategory.name.trim(),
-        type: newCategory.type,
-        transaction_type: formData.type
+        type: categoryType,
+        transaction_type: formData.type,
+        user_id: userData.user.id
       });
       
-      // Create the new category
+      // Create the new category with consistent typing
       const { data, error } = await supabase
         .from("categories")
         .insert({
           name: newCategory.name.trim(),
-          type: newCategory.type,
+          type: categoryType, // Use forced type based on transaction type
           user_id: userData.user.id,
           is_active: true
         })
@@ -2280,45 +2286,25 @@ export default function TransactionsPage() {
                         className="w-full rounded-md border-2 border-input bg-transparent px-3 py-2 text-sm font-medium"
                       />
                       <div className="flex space-x-2">
-                        <select
-                          value={newCategory.type}
-                          onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value as any })}
-                          className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm high-contrast-dropdown"
-                          aria-label="Category type"
-                        >
-                          {/* Show the appropriate options based on transaction type */}
-                          {formData.type === 'income' ? (
-                            <>
-                              <option value="income">Income</option>
-                              <option value="both">Both</option>
-                            </>
-                          ) : formData.type === 'expense' ? (
-                            <>
-                              <option value="expense">Expense</option>
-                              <option value="both">Both</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="expense">Expense</option>
-                              <option value="income">Income</option>
-                              <option value="both">Both</option>
-                            </>
-                          )}
-                        </select>
+                        {/* Hidden type dropdown - type is automatically determined by transaction type */}
+                        <input 
+                          type="hidden" 
+                          value={formData.type === "income" ? "income" : "expense"} 
+                        />
                         <Button 
                           type="button" 
                           onClick={handleAddCustomCategory}
                           disabled={isSavingCategory || !newCategory.name.trim()}
                           size="sm"
-                          className="bg-primary text-primary-foreground hover:bg-primary/90"
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                           {isSavingCategory ? (
                             <>
                               <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current mr-2"></div>
-                              Saving...
+                              Saving {formData.type === "income" ? "Income" : "Expense"} Category...
                             </>
                           ) : (
-                            "Add"
+                            `Add ${formData.type === "income" ? "Income" : "Expense"} Category`
                           )}
                         </Button>
                       </div>
