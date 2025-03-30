@@ -124,33 +124,114 @@ export async function ensureUserProfile(
 
 export function calculateNextRecurringDate(
   lastDate: Date | string, 
-  frequency: "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "annually" | string
+  frequency: "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "annually" | string,
+  timezone?: string
 ): Date {
-  const nextDate = new Date(lastDate);
-  
-  switch (frequency) {
-    case "daily":
-      nextDate.setDate(nextDate.getDate() + 1);
-      break;
-    case "weekly":
-      nextDate.setDate(nextDate.getDate() + 7);
-      break;
-    case "biweekly":
-      nextDate.setDate(nextDate.getDate() + 14);
-      break;
-    case "monthly":
-      nextDate.setMonth(nextDate.getMonth() + 1);
-      break;
-    case "quarterly":
-      nextDate.setMonth(nextDate.getMonth() + 3);
-      break;
-    case "annually":
-      nextDate.setFullYear(nextDate.getFullYear() + 1);
-      break;
-    default:
-      // Default to monthly if unknown frequency
-      nextDate.setMonth(nextDate.getMonth() + 1);
+  try {
+    // Convert to Date object if string
+    const date = typeof lastDate === 'string' ? new Date(lastDate) : new Date(lastDate);
+    
+    // Create a new date object to avoid modifying the input
+    const nextDate = new Date(date);
+    
+    // Apply timezone if provided
+    if (timezone) {
+      // Format with the timezone and then parse back to ensure correct date
+      const dateStr = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: timezone
+      }).format(nextDate);
+      
+      const [month, day, year] = dateStr.split('/');
+      nextDate.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    switch (frequency) {
+      case "daily":
+        nextDate.setDate(nextDate.getDate() + 1);
+        break;
+      case "weekly":
+        nextDate.setDate(nextDate.getDate() + 7);
+        break;
+      case "biweekly":
+        nextDate.setDate(nextDate.getDate() + 14);
+        break;
+      case "monthly":
+        // Handle edge cases like Jan 31 -> Feb 28/29
+        const currentMonth = nextDate.getMonth();
+        nextDate.setMonth(currentMonth + 1);
+        
+        // If the day changed (due to month length differences), set to last day of target month
+        if (nextDate.getMonth() !== ((currentMonth + 1) % 12)) {
+          nextDate.setDate(0); // Set to last day of previous month
+        }
+        break;
+      case "quarterly":
+        // Similar edge case handling as monthly
+        const currentMonthQ = nextDate.getMonth();
+        nextDate.setMonth(currentMonthQ + 3);
+        
+        // Handle day overflow
+        if (nextDate.getMonth() !== ((currentMonthQ + 3) % 12)) {
+          nextDate.setDate(0);
+        }
+        break;
+      case "annually":
+        // Handle Feb 29 on leap years
+        const currentYear = nextDate.getFullYear();
+        nextDate.setFullYear(currentYear + 1);
+        
+        // Check if we were on Feb 29 and now on Mar 1 (meaning the next year is not a leap year)
+        if (nextDate.getMonth() === 2 && nextDate.getDate() === 1 && 
+            date.getMonth() === 1 && date.getDate() === 29) {
+          // Set to Feb 28 instead
+          nextDate.setDate(28);
+          nextDate.setMonth(1);
+        }
+        break;
+      default:
+        // Default to monthly if unknown frequency
+        nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+    
+    return nextDate;
+  } catch (error) {
+    console.error("Error calculating next recurring date:", error);
+    // Return a safe default - one month from now
+    const fallbackDate = new Date();
+    fallbackDate.setMonth(fallbackDate.getMonth() + 1);
+    return fallbackDate;
   }
-  
-  return nextDate;
+}
+
+/**
+ * Gets the user's current timezone
+ */
+export function getUserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    console.error("Error getting timezone:", error);
+    return "UTC"; // Default fallback
+  }
+}
+
+// Format date with timezone awareness
+export function formatDateWithTimezone(dateString: string, timezone?: string): string {
+  try {
+    const userTimezone = timezone || getUserTimezone();
+    const date = new Date(dateString);
+    
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: userTimezone
+    }).format(date);
+  } catch (error) {
+    console.error("Error formatting date with timezone:", error);
+    return dateString; // Return original string as fallback
+  }
 } 
