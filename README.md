@@ -2,6 +2,26 @@
 
 A fully responsive budget tracking application built with Next.js, React, ShadCN UI, and Supabase.
 
+## Version 3.9 - Latest Updates
+
+**Released: March 30, 2023**
+
+### New Features
+- Added timezone support for user profiles
+- Implemented recurring transactions functionality
+- Enhanced transaction reliability with improved database functions
+
+### Database Improvements
+- Added timezone column to user profiles
+- Created recurring_transactions table with full RLS policies
+- Fixed issues with income transaction handling
+- Updated categories schema to better support income/expense types
+- Added is_active field to categories for better management
+
+### Bug Fixes
+- Resolved transaction insertion errors with reliable function
+- Fixed type handling for transaction categories
+
 ## Important: Environment Setup Required
 
 **Before building or deploying this project:**
