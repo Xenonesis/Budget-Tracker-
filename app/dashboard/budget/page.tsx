@@ -179,7 +179,10 @@ export default function BudgetPage() {
     e.preventDefault();
     try {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData.user) {
+        alert("You must be logged in to save a budget");
+        return;
+      }
 
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -204,7 +207,11 @@ export default function BudgetPage() {
           .eq("id", editId)
           .eq("user_id", userData.user.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating budget:", error);
+          alert(`Failed to update budget: ${error.message}`);
+          return;
+        }
       } else {
         // Check if budget for this category already exists
         const existingBudget = budgets.find(
@@ -226,7 +233,11 @@ export default function BudgetPage() {
             .eq("id", existingBudget.id)
             .eq("user_id", userData.user.id);
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error updating existing budget:", error);
+            alert(`Failed to update budget: ${error.message}`);
+            return;
+          }
         } else {
           // Create new budget
           const { error } = await supabase.from("budgets").insert([
@@ -238,7 +249,11 @@ export default function BudgetPage() {
             },
           ]);
 
-          if (error) throw error;
+          if (error) {
+            console.error("Error creating new budget:", error);
+            alert(`Failed to save budget: ${error.message}`);
+            return;
+          }
         }
       }
 
@@ -246,9 +261,10 @@ export default function BudgetPage() {
       await fetchBudgets();
       resetForm();
       setShowForm(false);
-    } catch (error) {
+      alert("Budget saved successfully!");
+    } catch (error: any) {
       console.error("Error saving budget:", error);
-      alert("Failed to save budget");
+      alert(`Failed to save budget: ${error?.message || "Unknown error"}`);
     }
   };
 
