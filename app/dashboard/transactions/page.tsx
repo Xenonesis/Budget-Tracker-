@@ -2784,7 +2784,6 @@ export default function TransactionsPage() {
                   {formData.category_id === "custom" && (
                     <div className="mt-3 p-3 border rounded-md bg-background/50">
                       <h4 className="text-sm font-medium mb-2">Create New Category</h4>
-                      {console.log("Rendering custom category form, showCustomCategoryForm=", showCustomCategoryForm)}
                       <CustomCategoryForm />
                     </div>
                   )}
