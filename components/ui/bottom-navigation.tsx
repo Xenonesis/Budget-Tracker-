@@ -14,14 +14,19 @@ interface NavItem {
 const NavItemButton = memo(({ item }: { item: NavItem }) => (
   <Link
     href={item.href}
-    className={`flex h-16 min-w-[4rem] flex-1 flex-col items-center justify-center gap-1 p-2 text-xs ${
+    className={`flex h-16 min-w-[4rem] flex-1 flex-col items-center justify-center gap-1 p-2 text-xs transition-all duration-200 ${
       item.active
-        ? "bg-background text-primary"
-        : "text-muted-foreground hover:bg-muted/40"
+        ? "text-primary"
+        : "text-muted-foreground hover:text-foreground"
     }`}
   >
-    {item.icon}
-    <span>{item.label}</span>
+    <div className={`flex items-center justify-center rounded-full p-1.5 ${
+      item.active ? "bg-primary/10" : ""
+    }`}>
+      {item.icon}
+    </div>
+    <span className={`${item.active ? "font-medium" : ""}`}>{item.label}</span>
+    {item.active && <div className="absolute bottom-0 h-1 w-8 rounded-t-full bg-gradient-to-r from-primary to-violet-400"></div>}
   </Link>
 ));
 
@@ -72,7 +77,7 @@ function BottomNavigationComponent() {
   ], [pathname]);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/80 backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around">
         {navItems.map((item) => (
           <NavItemButton key={item.href} item={item} />
@@ -91,7 +96,7 @@ function AddTransactionButtonComponent({
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg md:hidden"
+      className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-primary to-violet-400 text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:hidden"
       aria-label="Add Transaction"
     >
       <PlusCircle size={24} />

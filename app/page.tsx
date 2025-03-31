@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { motion, useScroll, useTransform, useInView, useAnimation, AnimatePresence } from "framer-motion";
 import { 
@@ -1837,7 +1838,11 @@ export default function Home() {
 
       {/* About Section */}
       <section id="about" className="py-20 md:py-28 relative overflow-hidden">
-        <div className="container mx-auto px-4">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+          <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl"></div>
+          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-secondary/10 blur-3xl"></div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1845,54 +1850,206 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet Our Team</h2>
-            <p className="text-lg text-muted-foreground">
-              Passionate developers dedicated to helping you achieve financial freedom
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet The Developer</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Passion, innovation, and expertise driving the Budget Tracker to help you achieve financial freedom
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {developers.map((developer, index) => (
-              <motion.div
-                key={developer.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-card rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="p-6">
-                  <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden border-2 border-primary">
-                    <Image 
-                      src={developer.avatar} 
-                      alt={developer.name} 
-                      width={96} 
-                      height={96} 
-                      className="object-cover w-full h-full" 
-                    />
-                  </div>
-                  <h3 className="text-xl font-bold text-center mb-2">{developer.name}</h3>
-                  <p className="text-primary text-center mb-3">{developer.role}</p>
-                  <p className="text-muted-foreground text-center mb-4">{developer.bio}</p>
-                  
-                  <div className="flex justify-center space-x-4">
-                    {developer.socials.map((social) => (
-                      <a 
-                        key={social.platform} 
-                        href={social.url} 
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="bg-card/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-border/40 max-w-5xl mx-auto"
+          >
+            <div className="p-8 md:p-10">
+              <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+                <motion.div 
+                  className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-primary/20 flex-shrink-0"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full" />
+                  <Image 
+                    src="/developer-profile.svg" 
+                    alt="Aditya Kumar Tiwari" 
+                    width={144} 
+                    height={144} 
+                    className="object-cover"
+                    priority
+                  />
+                </motion.div>
+                
+                <div className="flex-1 text-center md:text-left">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                  >
+                    <h3 className="text-2xl font-bold mb-1">Aditya Kumar Tiwari</h3>
+                    <p className="text-primary mb-3">Cybersecurity Enthusiast | Web Developer | Lifelong Learner</p>
+                    
+                    <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-4">
+                      <Badge variant="secondary" className="px-3 py-1">Cybersecurity</Badge>
+                      <Badge variant="secondary" className="px-3 py-1">Python</Badge>
+                      <Badge variant="secondary" className="px-3 py-1">JavaScript</Badge>
+                      <Badge variant="secondary" className="px-3 py-1">HTML/CSS</Badge>
+                      <Badge variant="secondary" className="px-3 py-1">Linux</Badge>
+                    </div>
+                    
+                    <p className="text-muted-foreground mb-6">
+                      Aditya is a passionate Cybersecurity Specialist and Full-Stack Developer currently pursuing a BCA in 
+                      Cybersecurity at Sushant University. He thrives at the intersection of technology and innovation, 
+                      crafting secure and scalable solutions for real-world challenges.
+                    </p>
+                    
+                    <div className="flex gap-3 justify-center md:justify-start">
+                      <Link 
+                        href="https://iaddy.netlify.app/" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-primary transition-colors duration-200"
-                        aria-label={`${developer.name}'s ${social.platform}`}
+                        className="inline-flex items-center px-4 py-2 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors duration-200"
                       >
-                        {social.icon}
-                      </a>
-                    ))}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        Portfolio
+                      </Link>
+                      <Link 
+                        href="https://www.linkedin.com/in/itisaddy/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-4 py-2 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                          <rect x="2" y="9" width="4" height="12" />
+                          <circle cx="4" cy="4" r="2" />
+                        </svg>
+                        LinkedIn
+                      </Link>
+                      <Link 
+                        href="https://www.instagram.com/i__aditya7/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-4 py-2 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                        </svg>
+                        Instagram
+                      </Link>
+                    </div>
+                    
+                    <motion.div 
+                      className="mt-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: 0.7 }}
+                    >
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-card/80 border border-border/50 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        <a href="mailto:itisaddy7@gmail.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">itisaddy7@gmail.com</a>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </div>
+              </div>
+              
+              <motion.div 
+                className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: 0.6 }}
+              >
+                <div>
+                  <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    Professional Experience
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg border border-border/50 bg-background/50 hover:bg-background transition-colors duration-300">
+                      <div className="font-medium">Mentor (Part-time)</div>
+                      <div className="text-sm text-muted-foreground">JhaMobii Technologies Pvt. Ltd., Remote</div>
+                      <div className="text-xs text-primary mb-2">Aug 2024 - Present</div>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Provided technical mentorship in cybersecurity</li>
+                        <li>• Guided team members through vulnerability assessments</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-border/50 bg-background/50 hover:bg-background transition-colors duration-300">
+                      <div className="font-medium">Cybersecurity Intern</div>
+                      <div className="text-sm text-muted-foreground">Null, Remote</div>
+                      <div className="text-xs text-primary mb-2">Jun 2024 - Present</div>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Conducted vulnerability assessments</li>
+                        <li>• Monitored network traffic and responded to security incidents</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                    Certifications
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">Foundations of Cybersecurity</div>
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">Cyber Threat Management</div>
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">OSForensics Triage</div>
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">Endpoint Security</div>
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">ISO 27001</div>
+                    <div className="py-2 px-3 rounded-lg border border-primary/30 bg-primary/5 text-primary font-medium text-sm text-center">Ethical Hacker</div>
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -1927,29 +2084,42 @@ export default function Home() {
               </p>
               
               <div className="flex space-x-3 mb-8">
-                {['twitter', 'facebook', 'instagram', 'github'].map(platform => (
-                  <a 
-                    key={platform}
-                    href={`https://${platform}.com`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
-                    aria-label={platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  >
-                    {platform === 'twitter' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
-                    )}
-                    {platform === 'facebook' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                    )}
-                    {platform === 'instagram' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                    )}
-                    {platform === 'github' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                    )}
-                  </a>
-                ))}
+                <a 
+                  href="mailto:itisaddy7@gmail.com"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
+                  aria-label="Email"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </a>
+                <a 
+                  href="https://www.linkedin.com/in/itisaddy/"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
+                  aria-label="LinkedIn"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a 
+                  href="https://www.instagram.com/i__aditya7/"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
+                  aria-label="Instagram"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                </a>
+                <a 
+                  href="https://github.com/itisaddy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-background shadow-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 transition-all duration-200"
+                  aria-label="GitHub"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                </a>
               </div>
             </div>
 

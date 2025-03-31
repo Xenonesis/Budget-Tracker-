@@ -1,116 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="gradientPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6d28d9" />
-      <stop offset="100%" stop-color="#9333ea" />
-    </linearGradient>
-    <linearGradient id="gradientSecondary" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#9333ea" />
-      <stop offset="100%" stop-color="#c4b5fd" />
-    </linearGradient>
-    <linearGradient id="gradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6" />
-      <stop offset="100%" stop-color="#a78bfa" />
-    </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="1.5" result="blur" />
-      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.6  0 1 0 0 0.2  0 0 1 0 1  0 0 0 0.7 0" result="glow" />
-      <feBlend in="SourceGraphic" in2="glow" mode="screen" />
-    </filter>
-  </defs>
   <style>
-    .currency {
-      fill: url(#gradientPrimary);
-      filter: url(#glow);
+    .primary {
+      fill: #7c3aed; /* primary violet-600 */
+    }
+    .secondary {
+      fill: #a78bfa; /* violet-400 */
     }
     .accent {
-      fill: url(#gradientSecondary);
+      fill: #8b5cf6; /* violet-500 */
     }
-    .circle {
+    .circle-outer {
       fill: none;
-      stroke: url(#gradientPrimary);
+      stroke: #7c3aed;
       stroke-width: 2;
-      filter: drop-shadow(0px 0px 1px rgba(109, 40, 217, 0.5));
     }
-    .rotate-circle {
-      stroke: url(#gradientSecondary);
+    .circle-inner {
+      fill: none;
+      stroke: #a78bfa;
+      stroke-width: 1;
+      stroke-dasharray: 4 2;
     }
     @media (prefers-color-scheme: dark) {
-      .currency { fill: url(#gradientDark); }
-      .accent { fill: #c4b5fd; }
-      .circle { stroke: url(#gradientDark); }
-      .rotate-circle { stroke: #a78bfa; }
-    }
-    .pulse {
-      animation: pulse 4s infinite ease-in-out;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.9; }
-    }
-    .rotate {
-      transform-origin: center;
-      animation: rotate 15s infinite linear;
-    }
-    @keyframes rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .float {
-      animation: float 5s infinite ease-in-out;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    .glow {
-      animation: glow 3s infinite alternate ease-in-out;
-    }
-    @keyframes glow {
-      from { opacity: 0.7; filter: blur(0); }
-      to { opacity: 1; filter: blur(0.5px); }
-    }
-    .orbit {
-      transform-origin: center;
-      animation: orbit 12s infinite linear;
-    }
-    @keyframes orbit {
-      from { transform: rotate(0deg) translateX(9px) rotate(0deg); }
-      to { transform: rotate(360deg) translateX(9px) rotate(-360deg); }
+      .primary { fill: #a78bfa; }
+      .secondary { fill: #c4b5fd; }
+      .accent { fill: #ddd6fe; }
+      .circle-outer { stroke: #a78bfa; }
+      .circle-inner { stroke: #c4b5fd; }
     }
   </style>
-  <g class="pulse">
-    <!-- Background glow effect -->
-    <circle cx="16" cy="16" r="16" fill="#6d28d9" opacity="0.07" class="glow" />
-    
+  
+  <g>
     <!-- Main circle -->
-    <circle cx="16" cy="16" r="15" class="circle" />
+    <circle cx="16" cy="16" r="15" class="circle-outer" />
     
-    <!-- Dollar sign -->
-    <path d="M16 7v18M21 10H13.5c-1.93 0-3.5 1.57-3.5 3.5S11.57 17 13.5 17H18.5c1.93 0 3.5 1.57 3.5 3.5S20.43 24 18.5 24H10" class="currency" stroke-width="2.5" stroke-linecap="round" />
+    <!-- Inner circle pattern -->
+    <circle cx="16" cy="16" r="10" class="circle-inner" />
     
-    <!-- Rotating elements -->
-    <g class="rotate">
-      <circle cx="16" cy="16" r="10" fill="none" class="rotate-circle" stroke-width="0.5" stroke-dasharray="2 2" />
-      <circle cx="16" cy="16" r="7" fill="none" class="rotate-circle" stroke-width="0.7" stroke-dasharray="3 3" transform="rotate(45 16 16)" />
-    </g>
-    
-    <!-- Floating dots -->
-    <circle cx="16" cy="6" r="1.5" class="accent float" />
-    <circle cx="16" cy="26" r="1.5" class="accent float" style="animation-delay: -2s;" />
+    <!-- "B" letter instead of dollar sign - Representing "Budget Buddy" -->
+    <path d="M12 8h4c2 0 4 1.5 4 3.5S18 15 16 15h-4v-7zM12 15h5c2 0 4 1.5 4 3.5S19 22 17 22h-5V15z" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          stroke="#7c3aed"
+          class="primary" 
+          fill="none" />
     
     <!-- Decorative elements -->
-    <g class="orbit" style="animation-delay: -3s;">
-      <circle cx="25" cy="16" r="1.2" class="accent glow" style="animation-delay: 1s;" />
-    </g>
-    <g class="orbit" style="animation-delay: -6s;">
-      <circle cx="25" cy="16" r="1.2" class="accent glow" style="animation-delay: 0.5s;" />
-    </g>
-    
-    <!-- Additional decorative elements -->
-    <circle cx="9" cy="9" r="1" class="accent glow" style="animation-delay: 1s;" />
-    <circle cx="23" cy="9" r="1" class="accent glow" style="animation-delay: 0.5s;" />
-    <circle cx="9" cy="23" r="1" class="accent glow" style="animation-delay: 1.5s;" />
-    <circle cx="23" cy="23" r="1" class="accent glow" style="animation-delay: 2s;" />
+    <circle cx="16" cy="5" r="1.5" class="accent" />
+    <circle cx="16" cy="27" r="1.5" class="accent" />
   </g>
 </svg>

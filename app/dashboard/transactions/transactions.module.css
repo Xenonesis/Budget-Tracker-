@@ -97,4 +97,22 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.skeletonTableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.skeletonTableContainer table {
+  width: 100%;
+}
+
+.skeletonCardContainer {
+  width: 100%;
 } 

@@ -200,17 +200,15 @@ export default function DashboardLayout({
       {/* Mobile Header */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            className="h-6 w-6 text-primary animate-pulse"
-          >
-            <path 
-              d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 3v5.5l4.5 2.7-0.75 1.23L10.5 13V7h1.5z"
-              fill="currentColor"
-            />
-          </svg>
-          <span className="text-lg">Budget Tracker</span>
+          <img 
+            src="/logo.svg" 
+            alt="Budget Buddy Logo" 
+            className="h-8 w-8" 
+          />
+          <div className="flex flex-col">
+            <span className="text-lg font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">Smart Money Management</span>
+          </div>
         </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle iconOnly />
@@ -242,17 +240,15 @@ export default function DashboardLayout({
       <aside className="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full transform overflow-y-auto border-r bg-card transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col sidebar-open:translate-x-0">
         <div className="flex h-16 items-center justify-between border-b px-6">
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="h-6 w-6 text-primary animate-pulse"
-            >
-              <path 
-                d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 3v5.5l4.5 2.7-0.75 1.23L10.5 13V7h1.5z"
-                fill="currentColor"
-              />
-            </svg>
-            <span className="text-lg">Budget Tracker</span>
+            <img 
+              src="/logo.svg" 
+              alt="Budget Buddy Logo" 
+              className="h-8 w-8" 
+            />
+            <div className="flex flex-col">
+              <span className="text-lg font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">Smart Money Management</span>
+            </div>
           </Link>
           {/* Close button for mobile */}
           <button

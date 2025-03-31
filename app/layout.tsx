@@ -24,25 +24,25 @@ export const viewport: Viewport = {
 
 // Improve metadata for better SEO and performance
 export const metadata: Metadata = {
-  title: 'Budget Tracker - Smart Financial Management',
-  description: 'Take control of your finances with our intuitive budget tracking tool. Set budgets, track expenses, and visualize your financial journey.',
-  applicationName: 'Budget Tracker',
-  authors: [{ name: 'Budget Tracker Team' }],
-  keywords: ['budget tracking', 'personal finance', 'expense management', 'money tracker', 'savings goals', 'financial dashboard'],
+  title: 'Budget Buddy - Smart Money Management',
+  description: 'Take control of your finances with Budget Buddy, an intuitive financial management tool. Track expenses, set budgets, and achieve your financial goals.',
+  applicationName: 'Budget Buddy',
+  authors: [{ name: 'Budget Buddy Team' }],
+  keywords: ['budget tracking', 'personal finance', 'expense management', 'money management', 'savings goals', 'financial dashboard', 'budget buddy'],
   robots: 'index, follow',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://budget-tracker.com',
-    title: 'Budget Tracker - Smart Financial Management',
-    description: 'Take control of your finances with our intuitive budget tracking tool.',
-    siteName: 'Budget Tracker',
+    url: 'https://budget-buddy.com',
+    title: 'Budget Buddy - Smart Money Management',
+    description: 'Take control of your finances with Budget Buddy, an intuitive financial management tool.',
+    siteName: 'Budget Buddy',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Budget Tracker - Smart Financial Management',
-    description: 'Take control of your finances with our intuitive budget tracking tool.',
-    creator: '@budgettracker',
+    title: 'Budget Buddy - Smart Money Management',
+    description: 'Take control of your finances with Budget Buddy, an intuitive financial management tool.',
+    creator: '@budgetbuddy',
   },
   icons: {
     icon: [
