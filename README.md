@@ -9,7 +9,32 @@ A fully responsive budget tracking application built with Next.js, React, ShadCN
 - **Instagram:** [https://www.instagram.com/i__aditya7/](https://www.instagram.com/i__aditya7/)
 - **Portfolio:** [https://iaddy.netlify.app/](https://iaddy.netlify.app/)
 
-## Version 5.0 - Latest Updates
+## Version 6.0 - Latest Updates
+
+**Released: March 31, 2024**
+
+### New Features
+- Enhanced budget visualization with multiple chart types (bar, pie, radial)
+- Added interactive chart type selectors for better data exploration
+- Implemented detailed tooltips for all charts with contextual information
+- Added percentage indicators directly on charts for quick insights
+- Improved Expense Categories visualization with donut charts and shadow effects
+
+### User Experience Improvements
+- Redesigned BudgetCharts component with better UI/UX
+- Enhanced Income vs. Expenses charts with area, bar, and line chart combinations
+- Added gradient fills and modern design elements to all visualizations
+- Improved empty states with helpful messages
+- Better color contrast and accessibility for data visualization
+
+### Technical Improvements
+- Optimized chart rendering with useMemo hooks
+- Improved data processing for more accurate visualization
+- Enhanced responsive design for all chart components
+- Better color palette implementation with consistent styling
+- Added custom filter components for shadow effects
+
+## Version 5.0
 
 **Released: March 30, 2024**
 
