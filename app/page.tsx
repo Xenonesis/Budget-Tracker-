@@ -152,13 +152,21 @@ export default function Home() {
               transition={{ duration: 0.2 }}
             >
               <Link href="/" className="flex items-center gap-2">
-                <div className="relative h-8 w-8 flex-shrink-0">
+                <div className="relative h-9 w-9 flex-shrink-0">
                   <Image 
                     src="/logo.svg" 
                     alt="Budget Tracker Logo" 
-                    width={32} 
-                    height={32} 
-                    className="h-8 w-8 object-contain" 
+                    width={36} 
+                    height={36} 
+                    className="h-9 w-9 object-contain dark:hidden" 
+                    priority
+                  />
+                  <Image 
+                    src="/logo-light.svg" 
+                    alt="Budget Tracker Logo" 
+                    width={36} 
+                    height={36} 
+                    className="h-9 w-9 object-contain hidden dark:block" 
                     priority
                   />
                 </div>
@@ -260,11 +268,11 @@ export default function Home() {
                 <div className="mobile-nav-logo">
                   <div className="relative flex-shrink-0">
                     <Image 
-                      src="/logo.svg" 
+                      src="/logo-light.svg" 
                       alt="Budget Tracker Logo" 
-                      width={24} 
-                      height={24} 
-                      className="h-6 w-6 relative"
+                      width={30} 
+                      height={30} 
+                      className="h-7 w-7 relative"
                       priority 
                     />
                   </div>

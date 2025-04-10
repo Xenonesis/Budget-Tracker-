@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
   <style>
     .primary {
-      fill: #7c3aed; /* primary violet-600 */
+      fill: #c4b5fd; /* lighter violet for dark backgrounds */
     }
     .secondary {
-      fill: #a78bfa; /* violet-400 */
+      fill: #ddd6fe; /* very light violet */
     }
     .accent {
-      fill: #8b5cf6; /* violet-500 */
+      fill: #a78bfa; /* violet-400 */
     }
     .circle-outer {
       fill: none;
-      stroke: #7c3aed;
+      stroke: #c4b5fd;
       stroke-width: 2.5;
     }
     .circle-inner {
       fill: none;
-      stroke: #a78bfa;
+      stroke: #ddd6fe;
       stroke-width: 1.5;
       stroke-dasharray: 4 2;
     }
@@ -24,22 +24,12 @@
     /* Coin styling */
     .coin-edge {
       fill: none;
-      stroke: #7c3aed;
+      stroke: #a78bfa;
       stroke-width: 1.5;
     }
     .coin-face {
-      fill: #c4b5fd;
+      fill: #ede9fe;
       opacity: 0.5;
-    }
-    
-    @media (prefers-color-scheme: dark) {
-      .primary { fill: #a78bfa; }
-      .secondary { fill: #c4b5fd; }
-      .accent { fill: #ddd6fe; }
-      .circle-outer { stroke: #a78bfa; }
-      .circle-inner { stroke: #c4b5fd; }
-      .coin-edge { stroke: #a78bfa; }
-      .coin-face { fill: #ddd6fe; opacity: 0.4; }
     }
 
     /* Animation effects */
@@ -93,7 +83,7 @@
             stroke-width="2.5" 
             stroke-linecap="round" 
             stroke-linejoin="round"
-            stroke="#7c3aed"
+            stroke="#c4b5fd"
             class="primary" 
             fill="none" />
     </g>
@@ -103,12 +93,12 @@
       <!-- Coin 1 -->
       <circle cx="22" cy="10" r="2.5" class="coin-face" />
       <circle cx="22" cy="10" r="2.5" class="coin-edge" />
-      <path d="M22 9v2M23 10h-2" stroke="#7c3aed" stroke-width="0.75" class="primary" />
+      <path d="M22 9v2M23 10h-2" stroke="#a78bfa" stroke-width="0.75" class="accent" />
       
       <!-- Coin 2 -->
       <circle cx="8" cy="20" r="2.5" class="coin-face" />
       <circle cx="8" cy="20" r="2.5" class="coin-edge" />
-      <path d="M8 19v2M9 20H7" stroke="#7c3aed" stroke-width="0.75" class="primary" />
+      <path d="M8 19v2M9 20H7" stroke="#a78bfa" stroke-width="0.75" class="accent" />
     </g>
     
     <!-- Decorative elements -->
