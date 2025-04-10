@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,45 @@ export default function LoginPage() {
   });
   const { resetPreferences } = useUserPreferences();
 
+  // Handle URL parameters for error messages
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get('error');
+      const messageParam = params.get('message');
+      
+      if (errorParam) {
+        switch (errorParam) {
+          case 'session_expired':
+            setError('Your session has expired. Please sign in again.');
+            break;
+          case 'session_error':
+            setError('There was an issue with your authentication. Please sign in again.');
+            break;
+          case 'unauthorized':
+            setError('You must be signed in to access that page.');
+            break;
+          default:
+            setError(errorParam);
+        }
+      } else if (messageParam) {
+        setError(messageParam);
+      }
+      
+      // Clean up any stale auth data on login page load
+      for (const key of Object.keys(localStorage)) {
+        if (key.includes('supabase.auth') || key.includes('budget-auth')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.includes('supabase.auth') || key.includes('budget-auth')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,12 +73,25 @@ export default function LoginPage() {
       // Reset preferences to ensure a clean state
       resetPreferences();
       
+      // Clean up any previous tokens to ensure a fresh login
+      for (const key of Object.keys(localStorage)) {
+        if (key.includes('supabase.auth') || key.includes('budget-auth')) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // Use signInWithPassword with explicit options
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        }
       });
 
       if (error) throw error;
+      
+      // Success! Redirect and refresh
       router.push("/dashboard");
       router.refresh();
     } catch (error: any) {

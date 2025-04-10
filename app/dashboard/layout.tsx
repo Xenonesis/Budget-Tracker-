@@ -10,6 +10,7 @@ import { ensureUserProfile } from "@/lib/utils";
 import { BottomNavigation } from "@/components/ui/bottom-navigation";
 import { useUserPreferences } from "@/lib/store";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getCurrentUser } from "@/lib/utils";
 
 interface NavItem {
   title: string;
@@ -119,25 +120,40 @@ export default function DashboardLayout({
     
     const getUser = async () => {
       try {
-        // Always refresh the auth state when checking
-        const { data, error } = await supabase.auth.getUser();
+        // Use our improved auth helper for more reliable auth state
+        const { user, error } = await getCurrentUser();
         
         if (error) {
-          throw error;
+          console.error("Auth error:", error.message);
+          // Check if the error is refresh token related
+          if (error.message?.includes("Refresh Token") || 
+              error.message?.includes("Invalid token") ||
+              error.message?.includes("JWT expired")) {
+            // Clear any invalid tokens
+            if (typeof window !== 'undefined') {
+              for (const key of Object.keys(localStorage)) {
+                if (key.includes('supabase.auth') || key.includes('budget-auth')) {
+                  localStorage.removeItem(key);
+                }
+              }
+            }
+            router.push("/auth/login?error=session_expired");
+            return;
+          }
         }
         
-        if (!data.user) {
+        if (!user) {
           router.push("/auth/login");
           return;
         }
         
-        setUser(data.user);
+        setUser(user);
         
         // Set the user ID in the store
-        setUserId(data.user.id);
+        setUserId(user.id);
         
         // Extract preferred currency from user metadata if it exists
-        const preferredCurrency = data.user.user_metadata?.preferred_currency;
+        const preferredCurrency = user.user_metadata?.preferred_currency;
         if (preferredCurrency) {
           // Set currency directly to avoid timing issues
           setCurrency(preferredCurrency);
@@ -150,9 +166,9 @@ export default function DashboardLayout({
         // Ensure profile exists using the utility function
         try {
           const profileCreated = await ensureUserProfile(
-            data.user.id, 
-            data.user.email, 
-            data.user.user_metadata?.name,
+            user.id, 
+            user.email, 
+            user.user_metadata?.name,
             preferredCurrency
           );
           
@@ -163,9 +179,9 @@ export default function DashboardLayout({
             
             // Retry once
             await ensureUserProfile(
-              data.user.id, 
-              data.user.email, 
-              data.user.user_metadata?.name,
+              user.id, 
+              user.email, 
+              user.user_metadata?.name,
               preferredCurrency
             );
           }
@@ -175,15 +191,28 @@ export default function DashboardLayout({
         }
         
         // Sync user preferences if not already initialized
-        if (!initialized || userId !== data.user.id) {
+        if (!initialized || userId !== user.id) {
           await syncWithDatabase();
           setInitialized(true);
         }
       } catch (error) {
         console.error("Error getting user:", error);
-        // If we get a 401 error, redirect to login
-        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 401) {
-          router.push("/auth/login");
+        
+        // Check if there's a specific auth error that requires redirection
+        let needsRedirect = false;
+        if (typeof error === 'object' && error !== null) {
+          if ('status' in error && error.status === 401) {
+            needsRedirect = true;
+          } else if ('message' in error && 
+                    (String(error.message).includes('token') || 
+                     String(error.message).includes('auth') ||
+                     String(error.message).includes('session'))) {
+            needsRedirect = true;
+          }
+        }
+        
+        if (needsRedirect) {
+          router.push("/auth/login?error=session_error");
         }
       } finally {
         if (isMounted) {
@@ -192,10 +221,16 @@ export default function DashboardLayout({
       }
     };
 
-    // Subscribe to auth state changes
+    // Subscribe to auth state changes with improved error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session && isMounted) {
+      (event, session) => {
+        console.log("Auth state change:", event);
+        
+        if (event === 'TOKEN_REFRESHED') {
+          // Token was successfully refreshed, no need to redirect
+          console.log("Token refreshed successfully");
+        } else if (!session && isMounted) {
+          console.log("No session in auth state change");
           router.push("/auth/login");
         }
       }
