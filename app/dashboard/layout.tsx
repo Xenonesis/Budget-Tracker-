@@ -230,18 +230,18 @@ export default function DashboardLayout({
       {/* Mobile Header */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 shadow-sm backdrop-blur-md pt-safe md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-          <div className="relative h-8 w-8 flex-shrink-0">
+          <div className="relative h-9 w-9 flex-shrink-0">
             <Image 
               src="/logo.svg" 
               alt="Budget Buddy Logo" 
-              width={32}
-              height={32}
-              className="h-8 w-8"
+              width={36}
+              height={36}
+              className="h-9 w-9"
               priority
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
+            <span className="text-base font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
             <span className="text-[10px] text-muted-foreground leading-tight">Smart Money Management</span>
           </div>
         </Link>
@@ -281,18 +281,18 @@ export default function DashboardLayout({
       >
         <div className="flex h-16 items-center justify-between border-b px-6 sticky top-0 bg-card/95 backdrop-blur-md z-10">
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-            <div className="relative h-8 w-8 flex-shrink-0">
+            <div className="relative h-9 w-9 flex-shrink-0">
               <Image 
                 src="/logo.svg" 
                 alt="Budget Buddy Logo" 
-                width={32}
-                height={32}
-                className="h-8 w-8"
+                width={36}
+                height={36}
+                className="h-9 w-9"
                 priority
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
+              <span className="text-base font-bold bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">Budget Buddy</span>
               <span className="text-[10px] text-muted-foreground leading-tight">Smart Money Management</span>
             </div>
           </Link>
