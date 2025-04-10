@@ -1789,11 +1789,11 @@ export default function TransactionsPage() {
       
       // Add visual feedback
       if (pullFactor > refreshDistance * 0.6) {
-        if (!contentRef.current.classList.contains('pull-ready')) {
-          contentRef.current.classList.add('pull-ready');
+        if (!contentRef.current.classList.contains(styles.pullReady)) {
+          contentRef.current.classList.add(styles.pullReady);
         }
       } else {
-        contentRef.current.classList.remove('pull-ready');
+        contentRef.current.classList.remove(styles.pullReady);
       }
     }
   }, []);
@@ -1804,7 +1804,7 @@ export default function TransactionsPage() {
     const pullDistance = pullMoveY.current - pullStartY.current;
     
     // Remove visual feedback class
-    contentRef.current.classList.remove('pull-ready');
+    contentRef.current.classList.remove(styles.pullReady);
     
     // Reset transform with animation
     contentRef.current.style.transition = 'transform 0.3s ease-out';
@@ -2504,7 +2504,7 @@ export default function TransactionsPage() {
     
     return (
       <div style={{...style, width: '100%'}} className="px-4">
-        <div className="rounded-lg border bg-card p-4 shadow-sm mb-3 w-full virtualized-card">
+        <div className={`rounded-lg border bg-card p-4 shadow-sm mb-3 w-full ${styles.virtualizedCard}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">
               {formatDate(transaction.date)}
@@ -2542,7 +2542,7 @@ export default function TransactionsPage() {
                 size="sm"
                 onClick={() => handleEdit(transaction)}
                 aria-label={`Edit transaction: ${transaction.description}`}
-                className="touch-target rounded-full h-10 w-10 p-0"
+                className={`${styles.touchTarget} rounded-full h-10 w-10 p-0`}
               >
                 <Edit2 className="h-4 w-4" />
               </Button>
@@ -2552,7 +2552,7 @@ export default function TransactionsPage() {
                 size="sm" 
                 onClick={() => handleDelete(transaction.id)}
                 aria-label={`Delete transaction: ${transaction.description}`}
-                className="touch-target rounded-full h-10 w-10 p-0"
+                className={`${styles.touchTarget} rounded-full h-10 w-10 p-0`}
               >
                 <Trash className="h-4 w-4" />
               </Button>
@@ -2895,8 +2895,8 @@ export default function TransactionsPage() {
       <div ref={contentRef}>
         {/* Pull-to-refresh indicator */}
         {refreshing && (
-          <div className="pull-indicator">
-            <svg className="pull-indicator-icon animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className={styles.pullIndicator}>
+            <svg className={styles.pullIndicatorIcon} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -3522,7 +3522,7 @@ export default function TransactionsPage() {
                 </div>
               ) : (
                 <div className="w-full" style={{ height: 'calc(75vh - 100px)', minHeight: '300px' }}>
-                  <AutoSizer className="auto-sizer">
+                  <AutoSizer className={styles.autoSizer}>
                     {({ height, width }) => (
                       <VirtualizedList
                         height={height}
@@ -3530,9 +3530,9 @@ export default function TransactionsPage() {
                         itemCount={filteredAndSortedTransactions.length}
                         itemSize={180}
                         overscanCount={3}
-                        className="react-window-list"
+                        className={styles.reactWindowList}
                         style={{ outline: 'none' }} // Remove focus outline
-                        outerElementType={forwardRef((props, ref) => (
+                        outerElementType={forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>((props, ref) => (
                           <div 
                             ref={ref} 
                             {...props} 

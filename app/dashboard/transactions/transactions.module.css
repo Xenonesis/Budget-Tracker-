@@ -133,29 +133,29 @@
   }
   
   /* Improved virtualized list styles */
-  :global(.react-window-list) {
+  .reactWindowList {
     width: 100% !important;
   }
   
   /* Make sure cards take full width */
-  :global(.virtualized-card) {
+  .virtualizedCard {
     width: 100% !important;
   }
 }
 
 /* Ensure the AutoSizer component works correctly */
-:global(.auto-sizer) {
+.autoSizer {
   width: 100% !important;
 }
 
 /* Improve touch targets for buttons */
-:global(.touch-target) {
+.touchTarget {
   min-height: 44px;
   min-width: 44px;
 }
 
 /* Pull-to-refresh styles */
-:global(.pull-indicator) {
+.pullIndicator {
   position: absolute;
   top: 0;
   left: 0;
@@ -167,16 +167,16 @@
   z-index: 10;
 }
 
-:global(.pull-indicator-icon) {
+.pullIndicatorIcon {
   width: 24px;
   height: 24px;
 }
 
-:global(.pull-ready) {
+.pullReady {
   position: relative;
 }
 
-:global(.pull-ready)::after {
+.pullReady::after {
   content: 'Release to refresh';
   position: absolute;
   top: 5px;
