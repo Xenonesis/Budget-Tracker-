@@ -143,13 +143,15 @@ export default function LoginPage() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
+                className="w-9 h-9 relative"
               >
                 <Image 
                   src="/logo.svg" 
                   alt="Budget Tracker Logo" 
-                  width={32} 
-                  height={32} 
-                  className="h-8 w-8" 
+                  width={36} 
+                  height={36} 
+                  className="h-9 w-9" 
+                  priority
                 />
               </motion.div>
               <motion.div 

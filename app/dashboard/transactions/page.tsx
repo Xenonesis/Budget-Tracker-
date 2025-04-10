@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, memo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, memo, forwardRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency, formatDate, formatDateWithTimezone, ensureUserProfile, calculateNextRecurringDate, getUserTimezone } from "@/lib/utils";
 import { Currency } from "@/components/ui/currency";
@@ -1772,7 +1772,7 @@ export default function TransactionsPage() {
     if (!contentRef.current) return;
     
     // Only enable pull-to-refresh when at the top of the page
-    if (window.scrollY > 0) return;
+    if (window.scrollY > 5) return;
     
     const { screenY } = e.touches[0];
     pullMoveY.current = screenY;
@@ -1786,6 +1786,15 @@ export default function TransactionsPage() {
       // Create pull effect with CSS transform
       const pullFactor = Math.min(pullDistance * 0.3, refreshDistance);
       contentRef.current.style.transform = `translateY(${pullFactor}px)`;
+      
+      // Add visual feedback
+      if (pullFactor > refreshDistance * 0.6) {
+        if (!contentRef.current.classList.contains('pull-ready')) {
+          contentRef.current.classList.add('pull-ready');
+        }
+      } else {
+        contentRef.current.classList.remove('pull-ready');
+      }
     }
   }, []);
 
@@ -1794,8 +1803,19 @@ export default function TransactionsPage() {
     
     const pullDistance = pullMoveY.current - pullStartY.current;
     
-    // Reset transform
+    // Remove visual feedback class
+    contentRef.current.classList.remove('pull-ready');
+    
+    // Reset transform with animation
+    contentRef.current.style.transition = 'transform 0.3s ease-out';
     contentRef.current.style.transform = 'translateY(0)';
+    
+    // Reset the transition after animation completes
+    setTimeout(() => {
+      if (contentRef.current) {
+        contentRef.current.style.transition = '';
+      }
+    }, 300);
     
     // Trigger refresh if pulled enough
     if (pullDistance > refreshDistance) {
@@ -1804,6 +1824,7 @@ export default function TransactionsPage() {
         await fetchTransactions();
         toast.success("Transactions refreshed");
       } catch (error) {
+        console.error("Error refreshing transactions:", error);
         toast.error("Failed to refresh transactions");
       } finally {
         setRefreshing(false);
@@ -2478,12 +2499,12 @@ export default function TransactionsPage() {
   };
 
   const CardRenderer = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
-    const transaction = paginatedTransactions[index];
+    const transaction = filteredAndSortedTransactions[index];
     if (!transaction) return null;
     
     return (
-      <div style={style} className="px-4">
-        <div className="rounded-lg border bg-card p-4 shadow-sm mb-3">
+      <div style={{...style, width: '100%'}} className="px-4">
+        <div className="rounded-lg border bg-card p-4 shadow-sm mb-3 w-full virtualized-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">
               {formatDate(transaction.date)}
@@ -2515,48 +2536,32 @@ export default function TransactionsPage() {
               <Currency value={transaction.amount} />
             </div>
             
-            <div className="flex space-x-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(transaction)}
-                      aria-label={`Edit transaction: ${transaction.description}`}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit transaction</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit(transaction)}
+                aria-label={`Edit transaction: ${transaction.description}`}
+                className="touch-target rounded-full h-10 w-10 p-0"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
               
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon" 
-                      onClick={() => handleDelete(transaction.id)}
-                      aria-label={`Delete transaction: ${transaction.description}`}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete transaction</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button
+                variant="outline"
+                size="sm" 
+                onClick={() => handleDelete(transaction.id)}
+                aria-label={`Delete transaction: ${transaction.description}`}
+                className="touch-target rounded-full h-10 w-10 p-0"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </div>
     );
-  }, [paginatedTransactions, handleEdit, handleDelete]);
+  }, [filteredAndSortedTransactions, handleEdit, handleDelete]);
 
   const CustomCategoryForm = () => {
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -3516,15 +3521,27 @@ export default function TransactionsPage() {
                   </Button>
                 </div>
               ) : (
-                <div style={{ height: '75vh', width: '100%' }}>
-                  <AutoSizer>
+                <div className="w-full" style={{ height: 'calc(75vh - 100px)', minHeight: '300px' }}>
+                  <AutoSizer className="auto-sizer">
                     {({ height, width }) => (
                       <VirtualizedList
-                        height={height || 500}
-                        width={width || window.innerWidth}
-                        itemCount={paginatedTransactions.length}
+                        height={height}
+                        width={width}
+                        itemCount={filteredAndSortedTransactions.length}
                         itemSize={180}
-                        overscanCount={5}
+                        overscanCount={3}
+                        className="react-window-list"
+                        style={{ outline: 'none' }} // Remove focus outline
+                        outerElementType={forwardRef((props, ref) => (
+                          <div 
+                            ref={ref} 
+                            {...props} 
+                            style={{ 
+                              ...props.style, 
+                              WebkitOverflowScrolling: 'touch' // Improve momentum scrolling on iOS
+                            }} 
+                          />
+                        ))}
                       >
                         {CardRenderer}
                       </VirtualizedList>
