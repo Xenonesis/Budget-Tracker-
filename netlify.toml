@@ -1,0 +1,30 @@
+[build]
+  command = "npm run netlify-build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+  NEXT_PUBLIC_SUPABASE_URL = "https://afxdmhqjbdqsuepojobb.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmeGRtaHFqYmRxc3VlcG9qb2JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5ODUwNTIsImV4cCI6MjA1ODU2MTA1Mn0.URWvuvRkfsltiOJhJ9zhYmeTBnfENOnXqHKOcm4LzBk"
+  NETLIFY_NEXT_PLUGIN_FORMS = "true"
+  NETLIFY_USE_YARN = "false"
+  NEXT_FORCE_EDGE_IMAGES = "true"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  pinned_version = "4.41.3"
+  
+[functions]
+  included_files = ["public/**/*"]
+  node_bundler = "esbuild"
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true
+
+[dev]
+  framework = "next"
+  targetPort = 3000 

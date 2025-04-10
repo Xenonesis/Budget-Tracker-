@@ -1,0 +1,1 @@
+doc.setTextColor(highlight ? 124 : 80, highlight ? 58 : 80, highlight ? 237 : 80);

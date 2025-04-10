@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <style>
+    .primary {
+      fill: #7c3aed; /* primary violet-600 */
+    }
+    .secondary {
+      fill: #a78bfa; /* violet-400 */
+    }
+    .accent {
+      fill: #8b5cf6; /* violet-500 */
+    }
+    .circle-outer {
+      fill: none;
+      stroke: #7c3aed;
+      stroke-width: 2;
+    }
+    .circle-inner {
+      fill: none;
+      stroke: #a78bfa;
+      stroke-width: 1;
+      stroke-dasharray: 4 2;
+    }
+    @media (prefers-color-scheme: dark) {
+      .primary { fill: #a78bfa; }
+      .secondary { fill: #c4b5fd; }
+      .accent { fill: #ddd6fe; }
+      .circle-outer { stroke: #a78bfa; }
+      .circle-inner { stroke: #c4b5fd; }
+    }
+  </style>
+  
+  <g>
+    <!-- Main circle -->
+    <circle cx="16" cy="16" r="15" class="circle-outer" />
+    
+    <!-- Inner circle pattern -->
+    <circle cx="16" cy="16" r="10" class="circle-inner" />
+    
+    <!-- "B" letter instead of dollar sign - Representing "Budget Buddy" -->
+    <path d="M12 8h4c2 0 4 1.5 4 3.5S18 15 16 15h-4v-7zM12 15h5c2 0 4 1.5 4 3.5S19 22 17 22h-5V15z" 
+          stroke-width="2" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          stroke="#7c3aed"
+          class="primary" 
+          fill="none" />
+    
+    <!-- Decorative elements -->
+    <circle cx="16" cy="5" r="1.5" class="accent" />
+    <circle cx="16" cy="27" r="1.5" class="accent" />
+  </g>
+</svg>
