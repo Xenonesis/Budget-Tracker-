@@ -505,6 +505,14 @@
     .font-bold.text-2xl {
       font-size: 1.25rem;
       line-height: 1.75rem;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .menu-button {
+      margin-left: 8px;
     }
   }
 
@@ -584,13 +592,13 @@
   }
 
   .mobile-menu-drawer {
-    @apply fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-background/60 backdrop-blur-xl border-l border-white/10 dark:border-white/5 z-50 flex flex-col shadow-xl overflow-y-auto;
-    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.08);
+    @apply fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-background/70 backdrop-blur-xl border-l border-white/10 dark:border-white/5 z-50 flex flex-col shadow-xl overflow-y-auto;
+    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
   }
 
   .mobile-menu-drawer .p-4 {
     @apply flex justify-between items-center;
-    min-height: 60px;
+    min-height: 64px;
   }
 
   .mobile-menu-drawer .font-bold {
@@ -598,23 +606,23 @@
   }
 
   .mobile-menu-item {
-    @apply flex items-center gap-2 text-muted-foreground hover:text-foreground py-3 border-b border-muted/30 px-3 rounded-md transition-all duration-200;
+    @apply flex items-center gap-3 text-muted-foreground hover:text-foreground py-4 border-b border-muted/30 px-4 rounded-md transition-all duration-200;
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
   }
   
   .mobile-menu-item:hover {
-    @apply bg-white/10 dark:bg-white/5;
+    @apply bg-white/10 dark:bg-white/5 translate-x-1;
     box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05);
   }
 
   .menu-button {
-    @apply p-2 rounded-full transition-colors relative bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-sm;
+    @apply p-2 rounded-full transition-colors relative bg-background/50 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-sm flex-shrink-0 ml-2;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   }
   
   .menu-button:hover {
-    @apply bg-background/60;
+    @apply bg-background/70;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   
@@ -659,7 +667,7 @@
   }
   
   .navbar-glass {
-    @apply backdrop-blur-xl border-t shadow-lg;
+    @apply bg-background/90 backdrop-blur-lg border-t shadow-lg;
     background-color: rgba(255, 255, 255, 0.5);
     border-top: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
@@ -1033,4 +1041,454 @@ html {
 
 .dark .border-animated::after {
   background: linear-gradient(45deg, hsl(var(--primary)/0.7), transparent, hsl(var(--primary)/0.7));
+}
+
+/* Header container improvements */
+header .container {
+  @apply mx-auto px-4;
+}
+
+header .flex {
+  @apply items-center justify-between py-4 relative;
+}
+
+/* Logo container - prevent overflow */
+header .font-bold.text-2xl {
+  @apply flex items-center gap-2 truncate;
+}
+
+header .font-bold.text-2xl a {
+  @apply flex items-center gap-2 relative truncate;
+}
+
+/* Logo image - prevent shrinking */
+header .font-bold.text-2xl .h-8.w-8 {
+  @apply flex-shrink-0;
+}
+
+/* Logo text - allow truncation */
+header .font-bold.text-2xl span {
+  @apply truncate;
+}
+
+/* Responsive navbar adjustments */
+@media (max-width: 1024px) {
+  .desktop-nav-container {
+    position: relative;
+    left: auto;
+    transform: none;
+    margin: 0 auto;
+    max-width: 100%;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .desktop-nav-container {
+    gap: 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .font-bold.text-2xl {
+    max-width: 140px;
+  }
+  
+  .menu-button {
+    padding: 0.375rem;
+  }
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+  .desktop-nav-item, 
+  .mobile-menu-item,
+  .menu-button,
+  button {
+    @apply touch-manipulation tap-highlight-transparent;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Safe area adjustments for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .mobile-menu-drawer {
+    padding-top: env(safe-area-inset-top);
+    height: calc(100% + env(safe-area-inset-top));
+  }
+  
+  header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Enhanced UI elements for budget tracker */
+.enhanced-header {
+  @apply fixed top-0 left-0 right-0 z-50 transition-all duration-300;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.enhanced-logo {
+  @apply font-bold text-xl md:text-2xl flex items-center gap-2 transition-all duration-300;
+}
+
+.enhanced-logo-text span:first-child {
+  @apply text-primary;
+}
+
+.enhanced-nav-container {
+  @apply hidden md:flex items-center gap-6 px-6 py-2 rounded-full mx-auto transition-all duration-200 
+  bg-black/5 dark:bg-white/5 backdrop-blur-sm border border-white/5 hover:border-primary/20;
+  max-width: min(90%, 600px);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  box-shadow: inset 0 0 0.5px 1px hsla(0, 0%, 100%, 0.1),
+              0 0 0 1px hsla(230, 13%, 9%, 0.075),
+              0 0.3px 0.4px hsla(230, 13%, 9%, 0.02),
+              0 0.9px 1.5px hsla(230, 13%, 9%, 0.045),
+              0 3.5px 6px hsla(230, 13%, 9%, 0.09);
+}
+
+.enhanced-nav-item {
+  @apply px-4 py-2 rounded-md transition-all duration-300 text-muted-foreground hover:text-foreground relative;
+  position: relative;
+  overflow: hidden;
+}
+
+.enhanced-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.375rem;
+  opacity: 0;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--primary-rgb), 0.05));
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: scale(0.9);
+}
+
+.enhanced-nav-item:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.enhanced-nav-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+  background: linear-gradient(90deg, transparent, rgba(var(--primary-rgb), 0.8), transparent);
+}
+
+.enhanced-nav-item:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.enhanced-mobile-menu-drawer {
+  @apply fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-background/80 z-50 flex flex-col shadow-xl overflow-y-auto border-l border-white/10 dark:border-white/5;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-mobile-menu-header {
+  @apply p-4 border-b border-white/10 flex justify-between items-center bg-black/5 dark:bg-white/5 backdrop-blur-md;
+  min-height: 64px;
+}
+
+.enhanced-mobile-menu-item {
+  @apply flex items-center gap-3 text-muted-foreground hover:text-foreground py-4 border-b border-muted/30 px-4 rounded-md transition-all duration-200;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.enhanced-mobile-menu-item:hover {
+  @apply bg-white/10 dark:bg-white/5 translate-x-2;
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+.enhanced-card {
+  @apply bg-card/80 border shadow-md rounded-xl transition-all duration-300 hover:shadow-lg relative overflow-hidden;
+  background-image: var(--gradient-card-light);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.dark .enhanced-card {
+  background-image: var(--gradient-card-dark);
+}
+
+.enhanced-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.enhanced-card:hover::before {
+  opacity: 1;
+}
+
+.enhanced-button {
+  @apply relative overflow-hidden transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1 active:translate-y-0 active:shadow-md;
+}
+
+.enhanced-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.enhanced-button:hover::before {
+  transform: translateX(100%);
+}
+
+.enhanced-gradient-text {
+  @apply font-bold relative;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.7));
+  background-size: 200% 200%;
+  animation: gradientFlow 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.enhanced-hero-section {
+  @apply min-h-screen flex flex-col justify-center relative overflow-hidden pt-20 pb-10;
+  background: radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.1), transparent 70%), 
+              radial-gradient(circle at bottom left, rgba(var(--primary-rgb), 0.05), transparent 70%);
+}
+
+.enhanced-hero-image {
+  @apply relative rounded-xl overflow-hidden shadow-xl border border-white/10 bg-white/5 backdrop-blur-sm;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+}
+
+.enhanced-hero-image:hover {
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+}
+
+.enhanced-feature-card {
+  @apply p-6 rounded-xl relative transition-all duration-300 hover:-translate-y-2;
+  background: rgba(var(--card), 0.5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--border), 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-feature-card:hover {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 0 15px rgba(var(--primary-rgb), 0.1);
+  border-color: rgba(var(--primary-rgb), 0.2);
+}
+
+.enhanced-feature-icon {
+  @apply w-12 h-12 rounded-full flex items-center justify-center mb-4 text-primary bg-primary/10 transition-all duration-300;
+  box-shadow: 0 5px 15px rgba(var(--primary-rgb), 0.1);
+}
+
+.enhanced-feature-card:hover .enhanced-feature-icon {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.2);
+}
+
+.enhanced-testimonial-card {
+  @apply p-6 rounded-xl relative transition-all duration-300 backdrop-blur-md;
+  background: linear-gradient(135deg, rgba(var(--card), 0.7), rgba(var(--card), 0.5));
+  border: 1px solid rgba(var(--border), 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-testimonial-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+.enhanced-pricing-card {
+  @apply p-6 rounded-xl relative transition-all duration-500 hover:-translate-y-2;
+  background: rgba(var(--card), 0.7);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--border), 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-pricing-card.popular {
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 20px 40px -10px rgba(var(--primary-rgb), 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+.enhanced-pricing-card.popular::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.5), transparent);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+.enhanced-pricing-card:hover {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+}
+
+.enhanced-pricing-card.popular:hover {
+  box-shadow: 0 30px 60px -15px rgba(var(--primary-rgb), 0.25);
+}
+
+.enhanced-cta-section {
+  @apply py-16 md:py-24 relative overflow-hidden;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1), rgba(var(--primary-rgb), 0.05));
+}
+
+.enhanced-cta-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent, var(--background));
+  pointer-events: none;
+}
+
+.animated-gradient-border {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.animated-gradient-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 2px;
+  background: linear-gradient(135deg, hsl(var(--primary)), transparent 50%, hsl(var(--primary)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  background-size: 300% 300%;
+  animation: gradientFlow 4s linear infinite;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Improving existing mobile menu */
+@media (max-width: 768px) {
+  .mobile-menu-drawer {
+    border-radius: 16px 0 0 16px;
+    width: 85%;
+  }
+  
+  .mobile-menu-item {
+    margin-bottom: 4px;
+  }
+}
+
+/* Safe area adjustments for notched phones */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .mobile-menu-drawer,
+  .enhanced-mobile-menu-drawer {
+    padding-top: env(safe-area-inset-top);
+    height: calc(100% + env(safe-area-inset-top));
+  }
+  
+  header,
+  .enhanced-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Mobile-optimized navbar */
+.mobile-optimized-header {
+  @apply fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-safe;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  /* Mobile-optimized background for better contrast and readability */
+  background-color: rgba(var(--background-rgb), 0.85);
+  border-bottom: 1px solid rgba(var(--border-rgb), 0.1);
+}
+
+.mobile-nav-logo {
+  @apply font-bold text-lg flex items-center gap-2 max-w-[60%];
+  letter-spacing: -0.01em;
+}
+
+.mobile-nav-button {
+  @apply p-3 rounded-full bg-background/60 border border-white/10 shadow-sm flex-shrink-0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-drawer {
+  @apply fixed top-0 right-0 bottom-0 w-[85%] max-w-xs z-50 flex flex-col overflow-y-auto bg-background/90 border-l border-white/10;
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  border-radius: 20px 0 0 20px;
+}
+
+.mobile-nav-item {
+  @apply flex items-center gap-3 py-4 px-5 border-b border-white/5 text-base;
+  min-height: 56px;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-item:active {
+  background-color: rgba(var(--primary-rgb), 0.1);
+}
+
+/* Enhanced feature card with Safari support */
+.enhanced-feature-card {
+  @apply p-6 rounded-xl relative transition-all duration-300 hover:-translate-y-2;
+  background: rgba(var(--card), 0.5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--border), 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced pricing card with Safari support */
+.enhanced-pricing-card {
+  @apply p-6 rounded-xl relative transition-all duration-500 hover:-translate-y-2;
+  background: rgba(var(--card), 0.7);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--border), 0.1);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
 } 

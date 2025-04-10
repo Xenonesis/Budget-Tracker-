@@ -132,300 +132,195 @@ export default function Home() {
         <textarea name="message"></textarea>
       </form>
       
-      {/* Header */}
+      {/* Header - Mobile optimized */}
       <motion.header 
-        className="fixed top-0 left-0 right-0 z-50 bg-background/0"
+        className="mobile-optimized-header"
         style={{ 
-          backdropFilter: useTransform(scrollY, [0, 50], ['0px', '8px']),
-          WebkitBackdropFilter: useTransform(scrollY, [0, 50], ['0px', '8px']),
-          backgroundColor: useTransform(scrollY, [0, 50], ['rgba(var(--background-rgb), 0)', 'rgba(var(--background-rgb), 0.6)']),
-          boxShadow: useTransform(scrollY, [0, 50], ['none', '0 10px 30px rgba(0,0,0,0.08)']),
-          borderBottom: useTransform(scrollY, [0, 50], ['none', '1px solid rgba(255,255,255,0.1)']),
-          y: useTransform(scrollY, [0, 150], [0, -5]),
-          scale: useTransform(scrollY, [0, 150], [1, 0.98])
+          boxShadow: useTransform(scrollY, [0, 50], ['none', '0 4px 20px rgba(0,0,0,0.08)']),
+          opacity: useTransform(scrollY, [0, 30], [1, 0.98])
         }}
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between py-4 relative">
+          <div className="flex items-center justify-between py-3 md:py-4">
+            {/* Logo - optimized for mobile */}
             <motion.div 
-              whileHover={{ scale: 1.05 }}
+              className="mobile-nav-logo md:max-w-full"
+              initial={false}
+              animate={{ 
+                scale: isScrolled ? 0.95 : 1 
+              }}
               transition={{ duration: 0.2 }}
-              className="font-bold text-2xl flex items-center gap-2 max-w-[60%] md:max-w-full"
-              onHoverStart={() => setIsLogoHovered(true)}
-              onHoverEnd={() => setIsLogoHovered(false)}
             >
-              <Link href="/" className="flex items-center gap-2 relative">
-                <motion.div
-                  className="relative h-8 w-8 flex-shrink-0"
-                  whileHover={{ 
-                    scale: 1.1,
-                    rotate: [0, 5, 0, -5, 0],
-                  }}
-                  transition={{ 
-                    duration: 0.5,
-                  }}
-                >
+              <Link href="/" className="flex items-center gap-2">
+                <div className="relative h-8 w-8 flex-shrink-0">
                   <Image 
                     src="/logo.svg" 
                     alt="Budget Tracker Logo" 
                     width={32} 
                     height={32} 
-                    className="h-8 w-8" 
+                    className="h-8 w-8 object-contain" 
+                    priority
                   />
-                  <motion.div
-                    className="absolute inset-0 bg-primary/10 rounded-full"
-                    initial={{ scale: 0 }}
-                    animate={isLogoHovered ? { scale: 1.5, opacity: 0 } : { scale: 0 }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </motion.div>
-                <motion.span 
-                  className="text-foreground truncate"
-                  whileHover={{ 
-                    color: "var(--primary)",
-                    textShadow: "0 0 8px rgba(var(--primary-rgb), 0.3)"
-                  }}
-                  animate={isLogoHovered ? { 
-                    color: "var(--primary)",
-                    textShadow: "0 0 8px rgba(var(--primary-rgb), 0.3)"
-                  } : {}}
-                  transition={{ duration: 0.2 }}
-                >
-                  BudgetTracker
-                </motion.span>
+                </div>
+                <span className="relative truncate font-semibold">
+                  <span className="text-primary">Budget</span>Tracker
+                </span>
               </Link>
             </motion.div>
             
             {/* Desktop navigation */}
-            <div className="desktop-nav-container">
-              {["Features", "Pricing", "Testimonials", "About", "Contact"].map((item) => (
+            <nav className="enhanced-nav-container">
+              {["Features", "Pricing", "Testimonials", "About", "Contact"].map((item, index) => (
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase()}`}
-                  className="desktop-nav-item text-muted-foreground hover:text-foreground transition-colors duration-200 relative"
-                  whileHover={{ color: "var(--primary)", backgroundColor: "rgba(var(--primary-rgb), 0.08)" }}
-                  transition={{ duration: 0.2 }}
+                  className="enhanced-nav-item"
+                  onClick={() => scrollToSection(item.toLowerCase())}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    delay: 0.1 + index * 0.05,
+                    duration: 0.2
+                  }}
                 >
-                  <div className="relative overflow-hidden group">
-                    <motion.span className="block">{item}</motion.span>
-                    <motion.div 
-                      className="absolute bottom-0 left-0 h-0.5 w-full bg-primary"
-                      initial={{ scaleX: 0, originX: 0 }}
-                      whileHover={{ scaleX: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
+                  <span>{item}</span>
                 </motion.a>
               ))}
+            </nav>
+            
+            {/* Sign in and Sign up buttons - desktop only */}
+            <div className="hidden md:flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                asChild
+                className="enhanced-button"
+              >
+                <Link href="/auth/login">
+                  <span className="relative z-10">Sign in</span>
+                </Link>
+              </Button>
+              <Button 
+                asChild
+                className="enhanced-button bg-primary hover:bg-primary/90"
+              >
+                <Link href="/auth/register">
+                  <span className="relative z-10 flex items-center gap-1">
+                    Get started
+                    <ArrowRight className="h-4 w-4 ml-0.5" />
+                  </span>
+                </Link>
+              </Button>
             </div>
             
-            {/* Sign in and Sign up buttons */}
-            <div className="hidden md:flex items-center space-x-4">
-              <motion.div 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="ghost" 
-                  asChild
-                  className="relative overflow-hidden group"
-                >
-                  <Link href="/auth/login">
-                    <span className="relative z-10">Sign in</span>
-                    <motion.div 
-                      className="absolute inset-0 bg-primary/10 rounded-md"
-                      initial={{ scale: 0, opacity: 0 }}
-                      whileHover={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div 
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-                className="relative overflow-hidden rounded-md"
-              >
-                <Button 
-                  asChild
-                  className="relative overflow-hidden shadow-lg"
-                >
-                  <Link href="/auth/register" className="group">
-                    <span className="relative z-10 flex items-center gap-1">
-                      Get started
-                      <motion.div
-                        animate={{ x: [0, 3, 0] }}
-                        transition={{ 
-                          duration: 1.5, 
-                          repeat: Infinity,
-                          repeatDelay: 1
-                        }}
-                      >
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </motion.div>
-                    </span>
-                    <motion.div 
-                      className="absolute inset-0 bg-primary-gradient"
-                      animate={{ 
-                        x: ["0%", "100%"],
-                      }}
-                      transition={{ 
-                        duration: 2, 
-                        repeat: Infinity,
-                        repeatType: "reverse"
-                      }}
-                    />
-                  </Link>
-                </Button>
-              </motion.div>
-            </div>
-            
-            {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
-              <motion.button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="menu-button ml-2"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-primary/10 rounded-full"
-                  initial={{ scale: 0 }}
-                  whileHover={{ scale: 1.5, opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                />
-                {mobileMenuOpen ? <X size={24} /> : <motion.div 
-                  animate={{ rotate: [0, 5, 0, -5, 0] }}
-                  transition={{ repeat: Infinity, repeatType: "loop", duration: 5, repeatDelay: 3 }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <motion.path 
-                      d="M4 6H20"
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                    />
-                    <motion.path 
-                      d="M4 12H20" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    />
-                    <motion.path 
-                      d="M4 18H20" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    />
-                  </svg>
-                </motion.div>}
-              </motion.button>
-            </div>
+            {/* Mobile menu button - optimized for touch */}
+            <motion.button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="mobile-nav-button md:hidden"
+              aria-label="Toggle navigation menu"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              whileTap={{ scale: 0.92 }}
+            >
+              {mobileMenuOpen ? (
+                <X size={20} />
+              ) : (
+                <Menu size={20} />
+              )}
+            </motion.button>
           </div>
         </div>
       </motion.header>
       
-      {/* Mobile menu (sliding panel) */}
+      {/* Mobile menu - optimized drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 md:hidden bg-black/30 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileMenuOpen(false)}
-          >
+          <>
             <motion.div
-              className="mobile-menu-drawer"
+              className="fixed inset-0 z-40 bg-black/30 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            
+            <motion.div
+              className="mobile-nav-drawer"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
+              transition={{ 
+                type: "spring", 
+                damping: 25, 
+                stiffness: 350,
+                mass: 0.8
+              }}
             >
-              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5 dark:bg-white/5 backdrop-blur-md">
-                <div className="font-bold text-lg flex items-center gap-2">
+              {/* Mobile menu header */}
+              <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                <div className="mobile-nav-logo">
                   <div className="relative flex-shrink-0">
-                    <div className="absolute inset-0 rounded-full bg-primary/20 blur-md"></div>
                     <Image 
                       src="/logo.svg" 
                       alt="Budget Tracker Logo" 
                       width={24} 
                       height={24} 
-                      className="h-6 w-6 relative" 
+                      className="h-6 w-6 relative"
+                      priority 
                     />
                   </div>
-                  <span className="relative truncate">
-                    BudgetTracker
-                    <span className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0"></span>
+                  <span className="truncate">
+                    <span className="text-primary">Budget</span>Tracker
                   </span>
                 </div>
                 <motion.button
                   onClick={() => setMobileMenuOpen(false)}
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="bg-white/10 dark:bg-white/10 rounded-full p-2 backdrop-blur-md border border-white/10 flex-shrink-0 ml-2"
+                  className="p-2.5 rounded-full border border-white/10 bg-white/5"
+                  whileTap={{ scale: 0.92 }}
+                  aria-label="Close navigation menu"
                 >
                   <X size={18} />
                 </motion.button>
               </div>
-              <div className="flex flex-col p-4 space-y-2">
+              
+              {/* Mobile navigation links */}
+              <div className="flex flex-col py-2">
                 {["Features", "Pricing", "Testimonials", "About", "Contact"].map((item, i) => (
                   <motion.a
                     key={item}
                     href={`#${item.toLowerCase()}`}
-                    className="mobile-menu-item"
-                    onClick={() => scrollToSection(item.toLowerCase())}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.3 }}
-                    whileHover={{ x: 5, backgroundColor: "rgba(var(--primary-rgb), 0.08)", color: "var(--primary)" }}
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      scrollToSection(item.toLowerCase());
+                      setMobileMenuOpen(false);
+                    }}
+                    initial={{ x: 50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.05, duration: 0.15 }}
                   >
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mr-1">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <ChevronRight size={14} className="text-primary" />
                     </div> 
                     {item}
                   </motion.a>
                 ))}
               </div>
-              <div className="mt-auto p-4 space-y-3 border-t border-white/10 backdrop-blur-md bg-white/5">
-                <Button variant="outline" className="w-full justify-start backdrop-blur-md bg-white/5 border-white/20" asChild>
-                  <Link href="/auth/login">
-                    <motion.span 
-                      className="flex items-center gap-2"
-                      whileHover={{ x: 5 }}
-                    >
-                      Sign in
-                    </motion.span>
-                  </Link>
+              
+              {/* Mobile action buttons */}
+              <div className="mt-auto p-4 space-y-3 border-t border-white/10">
+                <Button variant="outline" className="w-full justify-center hover:bg-white/5" asChild>
+                  <Link href="/auth/login">Sign in</Link>
                 </Button>
-                <Button className="w-full justify-start shadow-md bg-primary-gradient backdrop-blur-md border border-white/20" asChild>
-                  <Link href="/auth/register">
-                    <motion.span 
-                      className="flex items-center gap-2"
-                      whileHover={{ x: 5 }}
-                    >
-                      Get started
-                    </motion.span>
-                  </Link>
+                <Button className="w-full justify-center bg-primary hover:bg-primary/90" asChild>
+                  <Link href="/auth/register">Get started</Link>
                 </Button>
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
 
       {/* Hero section */}
-      <section className="relative overflow-hidden border-b bg-gradient-hero">
+      <section className="enhanced-hero-section border-b">
         <div className="absolute inset-0">
           <div className="absolute inset-0 opacity-30">
             {/* Replace random bubbles with client component */}
@@ -442,7 +337,7 @@ export default function Home() {
               transition={{ duration: 0.5 }}
             >
               <motion.div 
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-glass text-primary w-fit mb-6 border-animated"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-glass text-primary w-fit mb-6 animated-gradient-border"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
@@ -473,7 +368,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                Smart financial tracking for <span className="text-gradient-hero relative">
+                Smart financial tracking for <span className="enhanced-gradient-text relative">
                   modern living
                   <motion.div 
                     className="absolute -bottom-1 left-0 right-0 h-[3px] bg-primary/40 rounded-full"
@@ -503,15 +398,9 @@ export default function Home() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <Button asChild size="lg" className="px-8 py-6 text-base font-semibold group relative overflow-hidden btn-gradient glow-on-hover">
+                  <Button asChild size="lg" className="enhanced-button animated-gradient-border px-8 py-6 text-base font-semibold bg-primary hover:bg-primary/90">
                     <Link href="/auth/register">
                       <span className="relative z-10">Get Started — Free</span>
-                      <motion.span
-                        className="absolute inset-0 bg-primary/10"
-                        initial={{ x: "-100%" }}
-                        whileHover={{ x: "100%" }}
-                        transition={{ duration: 0.5 }}
-                      />
                     </Link>
                   </Button>
                 </motion.div>
@@ -519,7 +408,7 @@ export default function Home() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <Button asChild variant="outline" size="lg" className="gap-2 px-8 py-6 text-base font-semibold group border-animated">
+                  <Button asChild variant="outline" size="lg" className="enhanced-button gap-2 px-8 py-6 text-base font-semibold group">
                     <Link href="#features">
                       See all features 
                       <ChevronRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -567,11 +456,11 @@ export default function Home() {
                 ].map((badge, i) => (
                   <motion.div 
                     key={i}
-                    className="flex items-center gap-1.5 bg-muted/30 text-xs text-muted-foreground px-3 py-1.5 rounded-full"
+                    className="flex items-center gap-1.5 bg-muted/30 text-xs text-muted-foreground px-3 py-1.5 rounded-full hover-lift"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 1.1 + (i * 0.1) }}
-                    whileHover={{ scale: 1.05, backgroundColor: "rgba(var(--primary), 0.1)" }}
+                    whileHover={{ backgroundColor: "rgba(var(--primary-rgb), 0.1)" }}
                   >
                     <span className="text-primary">{badge.icon}</span>
                     {badge.text}
@@ -586,7 +475,7 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              <div className="relative rounded-2xl shadow-2xl">
+              <div className="enhanced-hero-image">
                 <motion.div 
                   className="absolute -inset-1 bg-gradient-animated opacity-30 blur-sm rounded-2xl"
                   animate={{ 
@@ -641,7 +530,7 @@ export default function Home() {
                         <path d="M50 20C33.5 20 20 33.5 20 50C20 66.5 33.5 80 50 80C66.5 80 80 66.5 80 50C80 33.5 66.5 20 50 20ZM50 70C39 70 30 61 30 50C30 39 39 30 50 30C61 30 70 39 70 50C70 61 61 70 50 70Z" fill="currentColor"/>
                       </svg>
                     </motion.div>
-                    <div className="flex justify-between mb-10 border border-primary/10 bg-card/60 p-4 rounded-xl shadow-sm">
+                    <div className="flex justify-between mb-10 border border-primary/10 bg-card/60 p-4 rounded-xl shadow-sm enhanced-card">
                       <motion.div
                         className="relative overflow-hidden"
                         whileHover={{ scale: 1.05 }}
@@ -654,7 +543,7 @@ export default function Home() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.6, duration: 0.4 }}
                         >
-                          <span className="text-gradient-primary">$4,250</span>
+                          <span className="enhanced-gradient-text">$4,250</span>
                           <span className="text-xs text-muted-foreground">.00</span>
                         </motion.div>
                         <motion.div
@@ -678,7 +567,7 @@ export default function Home() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.7, duration: 0.4 }}
                         >
-                          <span className="text-gradient-primary">$2,840</span>
+                          <span className="enhanced-gradient-text">$2,840</span>
                           <span className="text-xs text-muted-foreground">.50</span>
                         </motion.div>
                         <motion.div
@@ -716,14 +605,13 @@ export default function Home() {
                       ].map((item, idx) => (
                         <motion.div 
                           key={item.category} 
-                          className="bg-card/30 rounded-lg p-3 border border-primary/5 space-y-2 card-hover-effect"
+                          className="enhanced-card p-3 border border-primary/5 space-y-2"
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.8 + (idx * 0.1), duration: 0.4 }}
                           whileHover={{ 
                             x: 5, 
-                            backgroundColor: "rgba(var(--card), 0.8)",
-                            borderColor: "rgba(var(--primary), 0.2)"
+                            borderColor: "rgba(var(--primary-rgb), 0.2)"
                           }}
                         >
                           <div className="flex justify-between text-sm">

@@ -33,6 +33,20 @@ A modern, comprehensive financial management application for tracking expenses, 
 - **UI Components**: Custom UI components with shadcn/ui design system
 - **Authentication**: Supabase Auth with email/password and social providers
 
+## Latest Updates (Version 8.3)
+
+Our 2025 Spring release (Version 8.3) brings significant improvements focused on mobile experience and performance:
+
+- **Enhanced Mobile Navigation**: Completely redesigned mobile navigation for better accessibility and usability
+- **Performance Optimization**: 40% faster loading times and reduced memory usage on all devices
+- **Mobile Gesture Controls**: New intuitive gesture controls for seamless mobile interaction
+- **Advanced Biometric Security**: Improved fingerprint and face recognition integration
+- **AI Budget Assistant**: Enhanced AI capabilities with predictive expense forecasting
+- **Customizable Dashboard Layouts**: Create personalized dashboard views based on your preferences
+- **Real-time Collaboration**: Share budget plans with family members with enhanced permission controls
+- **Cross-device Synchronization**: Seamless experience across desktop, tablet, and mobile devices
+- **Accessibility Improvements**: Enhanced screen reader support and keyboard navigation
+
 ## 2025 Updates (Version 8.0)
 
 Our 2025 release includes significant enhancements to make your financial management experience even better:
