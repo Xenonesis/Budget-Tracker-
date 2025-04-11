@@ -12,70 +12,14 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("Missing Supabase environment variables")
 }
 
-// Create Supabase client with improved session handling
+// Create Supabase client
 console.log('Initializing Supabase client with URL:', supabaseUrl)
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'budget-auth-token',
-    // Use localStorage for more reliable token storage when cookies fail
-    storage: {
-      getItem: (key) => {
-        if (typeof window === 'undefined') {
-          return null
-        }
-        // Try to get from localStorage first (more reliable)
-        const fromLocalStorage = window.localStorage.getItem(key)
-        if (fromLocalStorage) {
-          return fromLocalStorage
-        }
-        
-        // Fallback to sessionStorage if localStorage fails
-        return window.sessionStorage.getItem(key)
-      },
-      setItem: (key, value) => {
-        if (typeof window === 'undefined') {
-          return
-        }
-        // Set in both storages for redundancy
-        window.localStorage.setItem(key, value)
-        window.sessionStorage.setItem(key, value)
-      },
-      removeItem: (key) => {
-        if (typeof window === 'undefined') {
-          return
-        }
-        window.localStorage.removeItem(key)
-        window.sessionStorage.removeItem(key)
-      },
-    },
-    flowType: 'pkce',
-    detectSessionInUrl: true,
-  },
-  global: {
-    fetch: (...args) => fetch(...args),
-  },
+  }
 })
-
-// Handle auth session changes
-if (typeof window !== 'undefined') {
-  // Set up auth state listener to handle token refresh errors
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-      // Clean local storage on logout
-      localStorage.removeItem('budget-auth-token')
-      sessionStorage.removeItem('budget-auth-token')
-      
-      // Clean up any other auth-related storage
-      for (const key of Object.keys(localStorage)) {
-        if (key.includes('supabase.auth') || key.includes('budget-auth')) {
-          localStorage.removeItem(key)
-        }
-      }
-    }
-  })
-}
 
 export type Json =
   | string

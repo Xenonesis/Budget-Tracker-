@@ -1,8 +1,8 @@
-# Budget Tracker
+# Budget Buddy
 
 A modern, comprehensive financial management application for tracking expenses, managing budgets, and gaining insights into your spending habits.
 
-![Budget Tracker Screenshot](public/dashboard-preview.png)
+![Budget Buddy Screenshot](public/dashboard-preview.png)
 
 ## Features
 
@@ -79,8 +79,8 @@ Previous updates (Version 7.x):
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/budget-tracker.git
-cd budget-tracker
+git clone https://github.com/yourusername/budget-buddy.git
+cd budget-buddy
 ```
 
 2. Install dependencies
@@ -112,4 +112,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact
 
-Have questions or feedback? Contact us at itisaddy7@gmail.com or reach out through our [contact form](https://budget-tracker.com/#contact). 
+Have questions or feedback? Contact us at itisaddy7@gmail.com or reach out through our [contact form](https://budget-buddy.com/#contact). 

@@ -152,18 +152,20 @@ export default function Home() {
               transition={{ duration: 0.2 }}
             >
               <Link href="/" className="flex items-center gap-2">
-                <div className="relative h-8 w-8 flex-shrink-0">
+                <div className="brand-icon-wrapper">
+                  <div className="brand-icon-glow"></div>
                   <Image 
                     src="/logo.svg" 
-                    alt="Budget Tracker Logo" 
-                    width={32} 
-                    height={32} 
-                    className="h-8 w-8 object-contain" 
+                    alt="Budget Buddy Logo" 
+                    width={40} 
+                    height={40} 
+                    className="h-10 w-10 md:h-12 md:w-12"
                     priority
                   />
                 </div>
-                <span className="relative truncate font-semibold">
-                  <span className="text-primary">Budget</span>Tracker
+                <span className="brand-name">
+                  <span className="brand-name-budget">Budget</span>
+                  <span className="brand-name-buddy">Buddy</span>
                 </span>
               </Link>
             </motion.div>
@@ -261,15 +263,15 @@ export default function Home() {
                   <div className="relative flex-shrink-0">
                     <Image 
                       src="/logo.svg" 
-                      alt="Budget Tracker Logo" 
-                      width={24} 
-                      height={24} 
-                      className="h-6 w-6 relative"
-                      priority 
+                      alt="Budget Buddy Logo" 
+                      width={36} 
+                      height={36} 
+                      className="h-9 w-9"
                     />
                   </div>
                   <span className="truncate">
-                    <span className="text-primary">Budget</span>Tracker
+                    <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent font-bold">Budget</span>
+                    <span className="font-medium">Buddy</span>
                   </span>
                 </div>
                 <motion.button
@@ -1445,7 +1447,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="text-lg font-medium italic text-foreground mb-4">
-                  "This app completely transformed how I manage my finances. The AI recommendations have saved me hundreds of dollars each month!"
+                  "Budget Buddy helped me save for my dream vacation in just 6 months. The visual insights made all the difference!"
                 </p>
                 <div>
                   <div className="font-semibold">Michael Thompson</div>
@@ -1952,7 +1954,7 @@ export default function Home() {
                     viewport={{ once: true }}
                     transition={{ delay: 0.7, duration: 0.4 }}
                   >
-                    "Budget Tracker helped me save for my dream vacation in just 6 months. The visual insights made all the difference!"
+                    "Budget Buddy helped me save for my dream vacation in just 6 months. The visual insights made all the difference!"
                   </motion.blockquote>
                   
                   <motion.div
@@ -1991,7 +1993,7 @@ export default function Home() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet The Developer</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Passion, innovation, and expertise driving the Budget Tracker to help you achieve financial freedom
+              Passion, innovation, and expertise driving the Budget Buddy to help you achieve financial freedom
             </p>
           </motion.div>
 
@@ -2353,13 +2355,13 @@ export default function Home() {
                 <div className="relative h-10 w-10 bg-primary/10 rounded-xl p-2 flex items-center justify-center">
                   <Image 
                     src="/logo.svg" 
-                    alt="Budget Tracker Logo" 
+                    alt="Budget Buddy Logo" 
                     width={24} 
                     height={24} 
                     className="h-6 w-6" 
                   />
                 </div>
-                <span className="font-bold text-xl">Budget Tracker</span>
+                <span className="font-bold text-xl">Budget Buddy</span>
               </div>
               
               <p className="text-sm text-muted-foreground mb-5 max-w-xs">
@@ -2435,7 +2437,7 @@ export default function Home() {
           {/* Footer bottom with copyright and links */}
           <div className="mt-12 pt-6 border-t border-border/30 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
-              <p className="text-xs text-muted-foreground">© 2025 Budget Tracker. All rights reserved.</p>
+              <p className="text-xs text-muted-foreground">© 2025 Budget Buddy. All rights reserved.</p>
               <div className="flex items-center gap-4 md:border-l md:border-border/30 md:pl-4">
                 <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">Privacy</a>
                 <a href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors">Terms</a>
@@ -2491,31 +2493,31 @@ const testimonials = [
   {
     name: "Alex Johnson",
     title: "Small Business Owner",
-    quote: "Budget Tracker completely transformed how I manage both my personal and business finances. The insights have helped me save over $5,000 in the past year alone.",
+    quote: "Budget Buddy completely transformed how I manage both my personal and business finances. The insights have helped me save over $5,000 in the past year alone.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
   },
   {
     name: "Sarah Williams",
     title: "Financial Planner",
-    quote: "I recommend Budget Tracker to all my clients. It's intuitive, comprehensive, and makes financial planning accessible to everyone.",
+    quote: "I recommend Budget Buddy to all my clients. It's intuitive, comprehensive, and makes financial planning accessible to everyone.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah"
   },
   {
     name: "Michael Chen",
-    title: "Software Engineer",
-    quote: "As someone who was terrible at tracking expenses, this app has been a game-changer. The automated categorization saves me hours each month.",
+    title: "College Student",
+    quote: "Living on a student budget was challenging until I found Budget Buddy. Now I can see exactly where my money goes and make informed decisions.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael"
   },
   {
     name: "Priya Patel",
     title: "Graduate Student",
-    quote: "Living on a student budget was challenging until I found Budget Tracker. Now I can see exactly where my money goes and make informed decisions.",
+    quote: "Living on a student budget was challenging until I found Budget Buddy. Now I can see exactly where my money goes and make informed decisions.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya"
   },
   {
     name: "David Kim",
     title: "Healthcare Professional",
-    quote: "The goal setting feature helped me save for a down payment on my house. The visual progress trackers kept me motivated throughout the journey.",
+    quote: "The goal setting feature helped me save for a down payment on my house. The visual progress buddys kept me motivated throughout the journey.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David"
   },
   {

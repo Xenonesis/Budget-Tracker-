@@ -883,8 +883,8 @@ async function chatWithOpenRouterAI(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://budgettracker.com', // Replace with your actual domain
-        'X-Title': 'Budget Tracker'
+        'HTTP-Referer': 'https://budgetbuddy.com', // Replace with your actual domain
+        'X-Title': 'Budget Buddy'
       },
       body: JSON.stringify({
         model: actualModel,

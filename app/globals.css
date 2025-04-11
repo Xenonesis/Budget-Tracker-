@@ -1124,7 +1124,7 @@ header .font-bold.text-2xl span {
   }
 }
 
-/* Enhanced UI elements for budget tracker */
+/* Enhanced UI elements for budget buddy */
 .enhanced-header {
   @apply fixed top-0 left-0 right-0 z-50 transition-all duration-300;
   backdrop-filter: blur(12px);
@@ -1491,4 +1491,45 @@ header .font-bold.text-2xl span {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(var(--border), 0.1);
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Brand styling classes */
+.brand-name {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.brand-name-budget {
+  background: linear-gradient(to right, var(--primary) 0%, var(--primary)/0.8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+.brand-name-buddy {
+  font-weight: 500;
+}
+
+.brand-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.brand-icon-glow {
+  position: absolute;
+  inset: -15%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary)/0.2 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.brand-icon-wrapper:hover .brand-icon-glow {
+  opacity: 1;
 } 

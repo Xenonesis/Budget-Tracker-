@@ -1,7 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
   <style>
     .primary {
-      fill: #7c3aed; /* primary violet-600 */
+      fill: url(#logoGradient); /* Using gradient instead of solid color */
     }
     .secondary {
       fill: #a78bfa; /* violet-400 */
@@ -13,6 +23,7 @@
       fill: none;
       stroke: #7c3aed;
       stroke-width: 2.5;
+      filter: url(#glow);
     }
     .circle-inner {
       fill: none;
@@ -33,7 +44,7 @@
     }
     
     @media (prefers-color-scheme: dark) {
-      .primary { fill: #a78bfa; }
+      .primary { fill: url(#logoGradient); }
       .secondary { fill: #c4b5fd; }
       .accent { fill: #ddd6fe; }
       .circle-outer { stroke: #a78bfa; }
@@ -41,26 +52,66 @@
       .coin-edge { stroke: #a78bfa; }
       .coin-face { fill: #ddd6fe; opacity: 0.4; }
     }
+
+    /* Animation effects */
+    .pulse {
+      animation: pulse 4s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    
+    .rotate {
+      transform-origin: center;
+      animation: rotate 20s infinite linear;
+    }
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .float {
+      animation: float 6s infinite ease-in-out;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    
+    .coins {
+      animation: coins 12s infinite ease-in-out;
+    }
+    @keyframes coins {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      25% { transform: translateY(-1px) rotate(5deg); }
+      75% { transform: translateY(1px) rotate(-5deg); }
+    }
   </style>
   
-  <g>
+  <g class="pulse">
     <!-- Main circle -->
     <circle cx="16" cy="16" r="14" class="circle-outer" />
     
-    <!-- Inner pattern -->
-    <circle cx="16" cy="16" r="10" class="circle-inner" />
+    <!-- Rotating inner pattern -->
+    <g class="rotate">
+      <circle cx="16" cy="16" r="10" class="circle-inner" />
+    </g>
     
-    <!-- "B" letter instead of dollar sign - Representing "Budget Buddy" -->
-    <path d="M12 8h4c2 0 4 1.5 4 3.5S18 15 16 15h-4v-7zM12 15h5c2 0 4 1.5 4 3.5S19 22 17 22h-5V15z" 
-          stroke-width="2.5" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          stroke="#7c3aed"
-          class="primary" 
-          fill="none" />
+    <!-- "B" letter instead of dollar sign - Enhanced B for Budget Buddy -->
+    <g class="float">
+      <path d="M12 8h4c2 0 4 1.5 4 3.5S18 15 16 15h-4v-7zM12 15h5c2 0 4 1.5 4 3.5S19 22 17 22h-5V15z" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+            stroke="#7c3aed"
+            class="primary" 
+            fill="url(#logoGradient)"
+            opacity="0.9" />
+    </g>
     
     <!-- Coins floating around -->
-    <g>
+    <g class="coins">
       <!-- Coin 1 -->
       <circle cx="22" cy="10" r="2.5" class="coin-face" />
       <circle cx="22" cy="10" r="2.5" class="coin-edge" />

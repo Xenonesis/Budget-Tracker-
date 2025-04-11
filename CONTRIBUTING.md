@@ -1,6 +1,6 @@
-# Contributing to Budget Tracker
+# Contributing to Budget Buddy
 
-Thank you for your interest in contributing to Budget Tracker! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Budget Buddy! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
@@ -36,8 +36,8 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/budget-tracker.git
-cd budget-tracker
+git clone https://github.com/your-username/budget-buddy.git
+cd budget-buddy
 ```
 
 2. Install dependencies:
@@ -87,6 +87,6 @@ We use [Semantic Versioning](https://semver.org/). Please follow these guideline
 
 ## License
 
-By contributing to Budget Tracker, you agree that your contributions will be licensed under the project's license.
+By contributing to Budget Buddy, you agree that your contributions will be licensed under the project's license.
 
-Thank you for contributing to Budget Tracker! 
+Thank you for contributing to Budget Buddy! 

@@ -610,7 +610,7 @@ export default function BudgetPage() {
           >
             <Image 
               src="/logo.svg" 
-              alt="Budget Tracker Logo" 
+              alt="Budget Buddy Logo" 
               width={40} 
               height={40} 
               className="h-8 w-8 md:h-10 md:w-10" 

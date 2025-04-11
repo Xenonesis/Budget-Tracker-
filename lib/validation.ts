@@ -1,5 +1,5 @@
 /**
- * Validation utilities for the Budget Tracker application
+ * Validation utilities for the Budget Buddy application
  * Contains validation functions for different types of input data
  */
 

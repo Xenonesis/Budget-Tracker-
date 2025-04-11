@@ -234,11 +234,11 @@ export function formatDateWithTimezone(dateString: string, timezone?: string): s
 
 // Local Storage Utilities for Data Persistence
 const STORAGE_KEYS = {
-  TRANSACTIONS: 'budget_tracker_transactions',
-  USER_PREFERENCES: 'budget_tracker_preferences',
-  CATEGORIES: 'budget_tracker_categories',
-  LAST_SYNC: 'budget_tracker_last_sync',
-  OFFLINE_CHANGES: 'budget_tracker_offline_changes'
+  TRANSACTIONS: 'budget_buddy_transactions',
+  USER_PREFERENCES: 'budget_buddy_preferences',
+  CATEGORIES: 'budget_buddy_categories',
+  LAST_SYNC: 'budget_buddy_last_sync',
+  OFFLINE_CHANGES: 'budget_buddy_offline_changes'
 };
 
 /**
@@ -432,82 +432,4 @@ export function getRandomColor(text: string): string {
   // Get a color from the array using the hash
   const index = Math.abs(hash) % colors.length;
   return colors[index];
-}
-
-// Auth helper functions
-
-/**
- * Get current session with auto refresh handling
- */
-export async function getAuthSession() {
-  try {
-    // First try to get current session
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-      console.error("Session error:", error.message);
-      return { session: null, error };
-    }
-    
-    if (!session) {
-      // No valid session found, try to refresh
-      console.log("No session found, attempting refresh...");
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError) {
-        console.error("Refresh error:", refreshError.message);
-        
-        // If we can't refresh, clean up any stale tokens
-        if (typeof window !== 'undefined') {
-          // Clear any potentially corrupted auth data
-          for (const key of Object.keys(localStorage)) {
-            if (key.includes('supabase.auth') || key.includes('budget-auth')) {
-              localStorage.removeItem(key);
-            }
-          }
-          for (const key of Object.keys(sessionStorage)) {
-            if (key.includes('supabase.auth') || key.includes('budget-auth')) {
-              sessionStorage.removeItem(key);
-            }
-          }
-        }
-        
-        return { session: null, error: refreshError };
-      }
-      
-      return { session: refreshData.session, error: null };
-    }
-    
-    return { session, error: null };
-  } catch (unexpectedError) {
-    console.error("Unexpected auth error:", unexpectedError);
-    return { session: null, error: unexpectedError };
-  }
-}
-
-/**
- * Get current user with error handling for auth state
- */
-export async function getCurrentUser() {
-  try {
-    // Get session using helper with refresh handling
-    const { session, error } = await getAuthSession();
-    
-    if (error || !session) {
-      return { user: null, error: error || new Error("No session available") };
-    }
-    
-    // Use getUser which is more reliable than session.user
-    const { data, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      console.error("Error getting user:", userError.message);
-      return { user: null, error: userError };
-    }
-    
-    return { user: data.user, error: null };
-  } catch (error) {
-    console.error("Error in getCurrentUser:", error);
-    return { user: null, error };
-  }
 } 

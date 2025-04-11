@@ -151,21 +151,6 @@ function BottomNavigationComponent() {
       transition={{ duration: 0.3, type: "spring", damping: 20 }}
     >
       <div className="relative">
-        {/* Floating Action Button */}
-        <motion.button
-          onClick={handleFabClick}
-          className="absolute -top-8 left-1/2 z-10 h-16 w-16 -translate-x-1/2 fab-button shadow-lg overflow-hidden"
-          whileTap={{ scale: 0.95 }}
-          whileHover={{ scale: 1.05, boxShadow: "0 8px 20px rgba(0,0,0,0.2)" }}
-          aria-label="Add Transaction"
-        >
-          <div className="absolute inset-0 bg-primary-gradient opacity-80"></div>
-          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-          <span className="relative z-10">
-            <PlusCircle size={28} />
-          </span>
-        </motion.button>
-        
         {/* Bottom navigation bar */}
         <div className="navbar-glass">
           <div className="relative overflow-hidden">
@@ -177,9 +162,6 @@ function BottomNavigationComponent() {
                   <NavItemButton key={item.href} item={item} />
                 ))}
               </div>
-              
-              {/* Empty space for FAB */}
-              <div className="w-16"></div>
               
               {/* Right nav items */}
               <div className="flex">

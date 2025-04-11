@@ -1,7 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
   <style>
     .primary {
-      fill: #7c3aed; /* primary violet-600 */
+      fill: url(#logoGradient);
     }
     .secondary {
       fill: #a78bfa; /* violet-400 */
@@ -13,6 +23,7 @@
       fill: none;
       stroke: #7c3aed;
       stroke-width: 2;
+      filter: url(#glow);
     }
     .circle-inner {
       fill: none;
@@ -21,7 +32,7 @@
       stroke-dasharray: 4 2;
     }
     @media (prefers-color-scheme: dark) {
-      .primary { fill: #a78bfa; }
+      .primary { fill: url(#logoGradient); }
       .secondary { fill: #c4b5fd; }
       .accent { fill: #ddd6fe; }
       .circle-outer { stroke: #a78bfa; }
@@ -38,12 +49,13 @@
     
     <!-- "B" letter instead of dollar sign - Representing "Budget Buddy" -->
     <path d="M12 8h4c2 0 4 1.5 4 3.5S18 15 16 15h-4v-7zM12 15h5c2 0 4 1.5 4 3.5S19 22 17 22h-5V15z" 
-          stroke-width="2" 
+          stroke-width="1.8" 
           stroke-linecap="round" 
           stroke-linejoin="round"
           stroke="#7c3aed"
           class="primary" 
-          fill="none" />
+          fill="url(#logoGradient)"
+          opacity="0.9" />
     
     <!-- Decorative elements -->
     <circle cx="16" cy="5" r="1.5" class="accent" />

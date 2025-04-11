@@ -172,7 +172,7 @@ export default function RegisterPage() {
             </motion.div>
             <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
             <p className="text-muted-foreground text-sm">
-              Join thousands of users managing their finances with Budget Tracker
+              Join thousands of users managing their finances with Budget Buddy
             </p>
           </motion.div>
 

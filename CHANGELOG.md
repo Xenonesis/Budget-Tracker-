@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Budget Tracker project will be documented in this file.
+All notable changes to the Budget Buddy project will be documented in this file.
 
 ## [8.3.0] - 2025-05-15
 
@@ -168,8 +168,13 @@ All notable changes to the Budget Tracker project will be documented in this fil
 ## [4.0.0] - 2025-03-30
 
 ### Added
-- Initial release of Budget Tracker with basic functionality
+- Initial release of Budget Buddy with basic functionality
 - Expense and income tracking
 - Simple budgeting features
 - Basic reports and charts
-- User authentication 
+- User authentication
+
+## 1.0.0 (2023-01-01)
+
+### Added
+- Initial release of Budget Buddy with basic functionality 
